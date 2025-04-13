@@ -1,7 +1,9 @@
 import React from "react";
 import styled from "styled-components";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
-import Login from "./login/login"; // login.tsx 파일 import
+import Login from "./login"; // login.tsx 파일 import
+import NewMember from "./newMember"; // newMember.tsx 파일 import
+import Header from "./header"; // header.tsx 파일 import
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
@@ -11,20 +13,13 @@ const MainComponent: React.FC = () => {
     navigate("/login");
   };
 
+  const handleSignUpClick = () => {
+    navigate("/signup");
+  };
+
   return (
     <Container>
-      <Header>
-        <Logo>BlankSync</Logo>
-        <Nav>
-          <NavItem>홈페이지 설명</NavItem>
-          <NavItem>팀 구성하기</NavItem>
-          <NavItem>나의 프로젝트</NavItem>
-        </Nav>
-        <LoginLinks>
-          <LinkItem onClick={handleLoginClick}>로그인</LinkItem> / <LinkItem>회원가입</LinkItem>
-        </LoginLinks>
-      </Header>
-
+      <Header />
       <Main>
         <TextSection>
           <Title>새로운 형식의 실시간 플랫폼</Title>
@@ -49,6 +44,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<MainComponent />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<NewMember />} />
       </Routes>
     </Router>
   );
