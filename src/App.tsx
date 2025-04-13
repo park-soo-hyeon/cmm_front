@@ -1,9 +1,10 @@
 import React from "react";
 import styled from "styled-components";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
-import Login from "./login"; // login.tsx 파일 import
-import NewMember from "./newMember"; // newMember.tsx 파일 import
+import Login from "./login/login"; // login.tsx 파일 import
 import Header from "./header"; // header.tsx 파일 import
+import Terms from "./login/terms";
+import NewMember from "./login/newMember";
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
@@ -44,7 +45,8 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<MainComponent />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<NewMember />} />
+        <Route path="/signup" element={<Terms />} />
+        <Route path="/signup2" element={<NewMember />} />
       </Routes>
     </Router>
   );
@@ -59,39 +61,6 @@ const Container = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-`;
-
-const Header = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background-color: #e9dfff;
-`;
-
-const Logo = styled.h1`
-  font-size: 24px;
-  font-weight: bold;
-`;
-
-const Nav = styled.nav`
-  display: flex;
-  gap: 20px;
-`;
-
-const NavItem = styled.span`
-  cursor: pointer;
-`;
-
-const LoginLinks = styled.div`
-  font-size: 14px;
-`;
-
-const LinkItem = styled.span`
-  cursor: pointer;
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 const Main = styled.main`
