@@ -1,8 +1,11 @@
 import React from "react";
 import styled from "styled-components";
 import Header from "../header";
+import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <Container>
       <Header />
@@ -12,12 +15,16 @@ const Login: React.FC = () => {
         <Subtitle>새로운 협업툴에 도전해보세요!</Subtitle>
         <InfoText>
           이용이 처음이신가요?{" "}
-          <SignUpLink href="#">회원가입하러 가기</SignUpLink>
+          <SignUpLink onClick={() => navigate("/signup")}>회원가입하러 가기</SignUpLink>
         </InfoText>
 
         <Form>
-          <Input type="text" placeholder="아이디" />
-          <Input type="password" placeholder="비밀번호" />
+          <InputWrapper>
+            <Input type="text" placeholder="아이디" />
+          </InputWrapper>
+          <InputWrapper>
+            <Input type="password" placeholder="비밀번호" />
+          </InputWrapper>
           <Button>로그인</Button>
         </Form>
 
@@ -64,29 +71,49 @@ const InfoText = styled.p`
   margin-top: -10px;
 `;
 
+const InputWrapper = styled.div`
+  display: flex;
+  width: 100%;
+  position: relative;
+`;
+
 const SignUpLink = styled.a`
   color: #6b5b95;
+  cursor: pointer;
 `;
 
 const Form = styled.div`
+  width: 100%;
+  max-width: 450px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 15px;
 `;
 
 const Input = styled.input`
-  width: 300px; /* 수정된 부분 */
-  padding: 10px; /* 추가 */
-  margin-bottom: 15px; /* 추가 */
-  border-radius: 5px; /* 추가 */
+  width: 100%;
+  padding: 15px;
+  border-radius: 50px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  outline: none;
 `;
 
 const Button = styled.button`
-  width: 300px; /* 버튼 크기 지정 */
-  padding: 10px; /* 버튼 내부 여백 */
-  background-color: purple; /* 수정된 부분 */
-  color: white; /* 텍스트 색상 */
-  border-radius: 5px; /* 둥근 모서리 */
+  width: 100%;
+  padding: 15px;
+  border-radius: 50px;
+  border: none;
+  background-color: #a78bfa;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+  &:hover {
+    background-color: #9061f9;
+  }
 `;
 
 // HelpLinks 스타일 정의

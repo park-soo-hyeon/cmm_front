@@ -5,6 +5,10 @@ import Login from "./login/login"; // login.tsx 파일 import
 import Header from "./header"; // header.tsx 파일 import
 import Terms from "./login/terms";
 import NewMember from "./login/newMember";
+import Create from "./create";
+import Team from "./main";
+import ProjectList from "./projectList";
+import Advice from "./advice";
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
@@ -17,6 +21,22 @@ const MainComponent: React.FC = () => {
   const handleSignUpClick = () => {
     navigate("/signup");
   };
+
+  const handleCreateClick = () => {
+    navigate("/create");
+  };
+
+  const handleCreateTeam = () => {
+    navigate("/main");
+  };
+
+  const handleListClick = () => {
+    navigate("/projectList");
+  }
+
+  const handleAdviceClick = () => {
+    navigate("/advice");
+  }
 
   return (
     <Container>
@@ -31,7 +51,7 @@ const MainComponent: React.FC = () => {
         </TextSection>
 
         <ImageSection>
-          <Image src="/collaboration-image.png" alt="협업 플랫폼 이미지" />
+          <Image src="/image/mainImage.jpg" alt="협업 플랫폼 이미지" />
         </ImageSection>
       </Main>
     </Container>
@@ -47,6 +67,10 @@ const App: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Terms />} />
         <Route path="/signup2" element={<NewMember />} />
+        <Route path="/create" element={<Create />} />
+        <Route path="/main" element={<Main />} />
+        <Route path="/projectList" element={<ProjectList />} />
+        <Route path="/advice" element={<Advice />} />
       </Routes>
     </Router>
   );

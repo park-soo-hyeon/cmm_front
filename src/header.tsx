@@ -7,15 +7,15 @@ const Header: React.FC = () => {
 
   return (
     <HeaderContainer>
-      <Logo>BlankSync</Logo>
+      <Logo onClick={() => navigate("/")}>BlankSync</Logo>
       <Nav>
-        <NavItem>홈페이지 설명</NavItem>
-        <NavItem>팀 구성하기</NavItem>
-        <NavItem>나의 프로젝트</NavItem>
+        <NavItem onClick={() => navigate("/advice")}>홈페이지 설명</NavItem>
+        <NavItem onClick={() => navigate("/create")}>팀 구성하기</NavItem>
+        <NavItem onClick={() => navigate("/projectList")}>나의 프로젝트</NavItem>
       </Nav>
       <LoginLinks>
         <LinkItem onClick={() => navigate("/login")}>로그인</LinkItem> / 
-        <LinkItem onClick={() => navigate("/signup")}>회원가입</LinkItem>
+        <LinkItem onClick={() => navigate("/signup")}> 회원가입</LinkItem>
       </LoginLinks>
     </HeaderContainer>
   );
@@ -35,6 +35,7 @@ const HeaderContainer = styled.header`
 const Logo = styled.h1`
   font-size: 24px;
   font-weight: bold;
+  cursor: pointer; /* 추가: 클릭 가능한 커서 */
 `;
 
 const Nav = styled.nav`

@@ -82,14 +82,18 @@ const TermItem = styled.li`
   font-size: 16px; /* 텍스트 크기 */
 `;
 
-const Circle = styled.span`
-  width: 20px; /* 원 크기 */
-  height: 20px; /* 원 크기 */
-  background-color: #b9a4f3; /* 원 색상 */
-  border-radius: 50%; /* 원형 만들기 */
-  margin-right: 10px; /* 텍스트와 간격 */
-`;
-
 const AgreeButton = styled.button`
-  width: calc(100% - 30px);
+  width: 100%;
+  padding: 15px;
+  border-radius: 50px;
+  border: none;
+  background-color: #a78bfa;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+  &:hover {
+    background-color: #9061f9;
+  }
 `;
