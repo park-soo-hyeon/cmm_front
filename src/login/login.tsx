@@ -1,10 +1,39 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import Header from "../header";
 import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [uid, setUid] = useState("");
+  const [upassword, setUpassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ uid, upassword })
+      });
+      const result = await response.json(); // true or false가 반환된다고 가정
+      if (result === true) {
+        alert("로그인 성공!");
+        navigate("/");
+        // navigate("/dashboard"); // 로그인 성공 시 이동할 페이지로 라우팅
+      } else {
+        alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+      }
+    } catch (error) {
+      alert("서버와의 통신에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Container>
@@ -18,17 +47,30 @@ const Login: React.FC = () => {
           <SignUpLink onClick={() => navigate("/signup")}>회원가입하러 가기</SignUpLink>
         </InfoText>
 
-        <Form>
+        <Form onSubmit={handleLogin}>
           <InputWrapper>
-            <Input type="text" placeholder="아이디" />
+            <Input
+              type="text"
+              placeholder="아이디"
+              value={uid}
+              onChange={(e) => setUid(e.target.value)}
+              required
+            />
           </InputWrapper>
           <InputWrapper>
-            <Input type="password" placeholder="비밀번호" />
+            <Input
+              type="password"
+              placeholder="비밀번호"
+              value={upassword}
+              onChange={(e) => setUpassword(e.target.value)}
+              required
+            />
           </InputWrapper>
-          <Button>로그인</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "로그인 중..." : "로그인"}
+          </Button>
         </Form>
 
-        {/* HelpLinks 추가 */}
         <HelpLinks>
           <HelpLink href="#">아이디 찾기</HelpLink>
           <HelpLink href="#">비밀번호 찾기</HelpLink>

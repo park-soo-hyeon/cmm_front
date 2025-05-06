@@ -10,7 +10,7 @@ const Create: React.FC = () => {
   const [teamName, setTeamName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
-  const navigate = useNavigate(); // 추가
+  const navigate = useNavigate();
 
   const handleTeamNameChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setTeamName(e.target.value);
@@ -38,12 +38,18 @@ const Create: React.FC = () => {
     navigate("/team"); // team.tsx로 이동 (라우팅 경로는 실제 라우터 설정에 맞게 조정)
   };
 
+  const handleCloseModal = () => {
+    navigate("/"); // app.tsx(홈)으로 이동
+  };
+
   return (
     <Container>
       <Header />
       <Main>
         <ModalBackdrop>
           <ModalBox>
+          <CloseButton onClick={handleCloseModal}>×</CloseButton>
+            
             {modalStep === 1 ? (
               <>
                 <ModalText>팀 구성하기</ModalText>
@@ -134,6 +140,7 @@ const ModalBackdrop = styled.div`
 `;
 
 const ModalBox = styled.div`
+  position: relative; /* 이 줄을 추가하세요! */
   background: #fff;
   padding: 32px 40px;
   border-radius: 12px;
@@ -143,6 +150,7 @@ const ModalBox = styled.div`
   align-items: center;
   min-width: 320px;
 `;
+
 
 const ModalText = styled.div`
   font-size: 1.3rem;
@@ -200,4 +208,21 @@ const MaxNotice = styled.div`
   color: #ef4444;
   margin-top: 8px;
   font-size: 0.95rem;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  line-height: 1;
+
+  &:hover {
+    color: #333;
+  }
 `;
