@@ -6,7 +6,7 @@ import Header from "./header"; // header.tsx 파일 import
 import Terms from "./login/terms";
 import NewMember from "./login/newMember";
 import Create from "./create";
-import Team from "./main";
+import Team from "./team";
 import ProjectList from "./projectList";
 import Advice from "./advice";
 
@@ -68,7 +68,7 @@ const App: React.FC = () => {
         <Route path="/signup" element={<Terms />} />
         <Route path="/signup2" element={<NewMember />} />
         <Route path="/create" element={<Create />} />
-        <Route path="/main" element={<Main />} />
+        <Route path="/team" element={<Team />} />
         <Route path="/projectList" element={<ProjectList />} />
         <Route path="/advice" element={<Advice />} />
       </Routes>
