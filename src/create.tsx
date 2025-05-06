@@ -1,15 +1,22 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import Header from "./header";
-import { useNavigate } from "react-router-dom"; // 추가
+import { useNavigate } from "react-router-dom";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type TeamResponse = {
+  tId: string;
+  tName: string;
+  uid: string;
+};
 
 const Create: React.FC = () => {
   const [modalStep, setModalStep] = useState<1 | 2>(1);
   const [teamName, setTeamName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleTeamNameChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -33,13 +40,40 @@ const Create: React.FC = () => {
     setMemberEmail("");
   };
 
-  const handleCreateTeam = () => {
-    alert(`팀 "${teamName}"이(가) 생성되었습니다!`);
-    navigate("/team"); // team.tsx로 이동 (라우팅 경로는 실제 라우터 설정에 맞게 조정)
+  // 팀 생성(POST /create)
+  const handleCreateTeam = async () => {
+    if (!teamName.trim() || emails.length === 0) {
+      alert("팀 이름과 팀원 이메일을 입력해 주세요.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch("/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          tname: teamName,
+          uid: emails[0] // 첫 번째 팀원 이메일만 전송
+        })
+      });
+      if (!response.ok) {
+        throw new Error("서버 오류");
+      }
+      const team: TeamResponse = await response.json();
+      alert(`팀 "${team.tName}"이(가) 생성되었습니다! (ID: ${team.tId})`);
+      // 필요하다면 team 객체를 상태/스토어에 저장하거나, 페이지 이동
+      navigate("/team");
+    } catch (error) {
+      alert("팀 생성에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCloseModal = () => {
-    navigate("/"); // app.tsx(홈)으로 이동
+    navigate("/");
   };
 
   return (
@@ -48,8 +82,7 @@ const Create: React.FC = () => {
       <Main>
         <ModalBackdrop>
           <ModalBox>
-          <CloseButton onClick={handleCloseModal}>×</CloseButton>
-            
+            <CloseButton onClick={handleCloseModal}>×</CloseButton>
             {modalStep === 1 ? (
               <>
                 <ModalText>팀 구성하기</ModalText>
@@ -88,9 +121,9 @@ const Create: React.FC = () => {
                   </ConfirmButton>
                   <CreateButton
                     onClick={handleCreateTeam}
-                    disabled={emails.length === 0}
+                    disabled={emails.length === 0 || loading}
                   >
-                    생성
+                    {loading ? "생성 중..." : "생성"}
                   </CreateButton>
                 </ButtonRow>
                 <EmailList>
@@ -112,7 +145,7 @@ const Create: React.FC = () => {
 
 export default Create;
 
-// Styled Components
+// Styled Components (동일)
 const Container = styled.div`
   font-family: Arial, sans-serif;
   background-color: #f6f0ff;
@@ -140,7 +173,7 @@ const ModalBackdrop = styled.div`
 `;
 
 const ModalBox = styled.div`
-  position: relative; /* 이 줄을 추가하세요! */
+  position: relative;
   background: #fff;
   padding: 32px 40px;
   border-radius: 12px;
@@ -150,7 +183,6 @@ const ModalBox = styled.div`
   align-items: center;
   min-width: 320px;
 `;
-
 
 const ModalText = styled.div`
   font-size: 1.3rem;
