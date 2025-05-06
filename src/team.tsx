@@ -2,8 +2,85 @@ import React from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
+type TextBox = { x: number; y: number; value: string };
+
 const Team: React.FC = () => {
   const navigate = useNavigate();
+
+  const [isTextMode, setIsTextMode] = React.useState(false);
+  const [textBoxes, setTextBoxes] = React.useState<TextBox[]>([]);
+  const [focusedIdx, setFocusedIdx] = React.useState<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = React.useState<number | null>(null);
+  const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // 반드시 useRef로 최신 상태를 참조해야 함!
+  const textBoxesRef = React.useRef(textBoxes);
+  textBoxesRef.current = textBoxes;
+  const draggingIdxRef = React.useRef(draggingIdx);
+  draggingIdxRef.current = draggingIdx;
+
+  // 메인 영역 클릭 시 텍스트 박스 생성
+  const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isTextMode) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setTextBoxes((prev) => [...prev, { x, y, value: "" }]);
+    setIsTextMode(false);
+  };
+
+  // 텍스트 박스 내용 변경
+  const handleTextBoxChange = (idx: number, value: string) => {
+    setTextBoxes((prev) => {
+      const copy = [...prev];
+      copy[idx].value = value;
+      return copy;
+    });
+  };
+
+  // 텍스트 박스 삭제
+  const handleDelete = (idx: number) => {
+    setTextBoxes((prev) => prev.filter((_, i) => i !== idx));
+    setFocusedIdx(null);
+  };
+
+  // 드래그 중 (useRef로 최신 상태 참조)
+  const handleDragging = React.useCallback((e: MouseEvent) => {
+    const idx = draggingIdxRef.current;
+    if (idx === null) return;
+    setTextBoxes((prev) => {
+      const copy = [...prev];
+      copy[idx] = {
+        ...copy[idx],
+        x: e.clientX - dragOffset.current.x,
+        y: e.clientY - dragOffset.current.y,
+      };
+      return copy;
+    });
+  }, []);
+
+  // 드래그 종료
+  const handleDragEnd = React.useCallback(() => {
+    setDraggingIdx(null);
+    window.removeEventListener("mousemove", handleDragging);
+    window.removeEventListener("mouseup", handleDragEnd);
+  }, [handleDragging]);
+
+  // 드래그 시작
+  const handleDragStart = (
+    idx: number,
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggingIdx(idx);
+    dragOffset.current = {
+      x: e.clientX - textBoxesRef.current[idx].x,
+      y: e.clientY - textBoxesRef.current[idx].y,
+    };
+    window.addEventListener("mousemove", handleDragging);
+    window.addEventListener("mouseup", handleDragEnd);
+  };
 
   return (
     <Container>
@@ -31,11 +108,19 @@ const Team: React.FC = () => {
             페이지 생성 / 삭제
           </SidebarFooter>
         </Sidebar>
-
-        {/* 메인 컨텐츠 */}
-        <MainArea>
+        <MainArea
+          onClick={handleMainAreaClick}
+          $isTextMode={isTextMode}
+        >
+          {/* 툴바 */}
           <FloatingToolbar>
-            <ToolIcon>T</ToolIcon>
+            <ToolIcon
+              onClick={() => setIsTextMode((prev) => !prev)}
+              style={{ color: isTextMode ? "#6b5b95" : undefined }}
+              title="텍스트 상자 생성 모드"
+            >
+              T
+            </ToolIcon>
             <ToolIcon>
               <ImageIcon />
             </ToolIcon>
@@ -50,8 +135,38 @@ const Team: React.FC = () => {
             <ColorCircle color="#ffb700" />
           </FloatingToolbar>
 
-          {/* 여기에 메인 컨텐츠 추가 */}
-          
+          {textBoxes.map((box, idx) => (
+            <TextBoxWrap
+              key={idx}
+              style={{ left: box.x, top: box.y }}
+              tabIndex={0}
+              onFocus={() => setFocusedIdx(idx)}
+              onBlur={() => setFocusedIdx((cur) => (cur === idx ? null : cur))}
+            >
+              <TextBoxInput
+                value={box.value}
+                onChange={e => handleTextBoxChange(idx, e.target.value)}
+                autoFocus={focusedIdx === idx}
+                onFocus={() => setFocusedIdx(idx)}
+                onDragStart={e => e.preventDefault()}
+              />
+              {focusedIdx === idx && (
+                <ButtonGroup>
+                  <CircleBtn
+                    color="#00d26a"
+                    title="이동"
+                    onMouseDown={e => handleDragStart(idx, e)}
+                    onDragStart={e => e.preventDefault()}
+                  />
+                  <CircleBtn
+                    color="#ff4a4a"
+                    title="삭제"
+                    onClick={() => handleDelete(idx)}
+                  />
+                </ButtonGroup>
+              )}
+            </TextBoxWrap>
+          ))}
           <FloatingButton>+</FloatingButton>
         </MainArea>
       </Content>
@@ -60,6 +175,10 @@ const Team: React.FC = () => {
 };
 
 export default Team;
+
+// 아래 스타일 컴포넌트는 기존 코드와 동일하게 사용하세요!
+/* ... (생략, 기존 코드 그대로 사용) ... */
+
 
 // Styled Components
 const Container = styled.div`
@@ -77,7 +196,7 @@ const Content = styled.div`
   height: calc(100vh - 70px);
 `;
 
-// 사이드바 관련 컴포넌트 (동일)
+// 사이드바
 const Sidebar = styled.div`
   width: 280px;
   background: #e3e0f8;
@@ -145,17 +264,16 @@ const SidebarFooter = styled.div`
   padding: 18px 0 12px 0;
 `;
 
-// 메인 영역 관련 컴포넌트
-const MainArea = styled.div`
-  flex: 1;
-  padding: 40px 32px 32px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
+// 메인 영역
+const MainArea = styled.div<{ $isTextMode: boolean }>`
   position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #f6f0ff;
+  cursor: ${({ $isTextMode }) => ($isTextMode ? "text" : "default")};
 `;
 
-// 새 부유 툴바 스타일
+// 부유 툴바
 const FloatingToolbar = styled.div`
   display: flex;
   align-items: center;
@@ -183,7 +301,6 @@ const ToolIcon = styled.button`
   cursor: pointer;
   color: #444;
   padding: 0;
-  
   &:hover {
     color: #000;
   }
@@ -204,13 +321,31 @@ const ColorCircle = styled.button<{ color: string }>`
   border: none;
   cursor: pointer;
   margin: 0 2px;
-  
   &:hover {
     transform: scale(1.1);
   }
 `;
 
-// SVG 아이콘 컴포넌트들
+// 텍스트 박스 input 스타일
+const TextBoxInput = styled.input`
+  font-size: 16px;
+  padding: 4px 8px;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+`;
+
+
+const TextBoxWrap = styled.div`
+  position: absolute;
+  min-width: 120px;
+  z-index: 10;
+  outline: none;
+`;
+
+// SVG 아이콘 컴포넌트
 const ImageIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -240,4 +375,27 @@ const FloatingButton = styled.button`
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   cursor: pointer;
   z-index: 10;
+`;
+
+const ButtonGroup = styled.div`
+  position: absolute;
+  top: -18px;
+  right: -8px;
+  display: flex;
+  gap: 6px;
+`;
+
+const CircleBtn = styled.button<{ color: string }>`
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: ${({ color }) => color};
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  cursor: pointer;
+  display: inline-block;
+  transition: transform 0.1s;
+  &:active {
+    transform: scale(0.92);
+  }
 `;
