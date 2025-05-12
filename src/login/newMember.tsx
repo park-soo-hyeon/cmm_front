@@ -3,6 +3,8 @@ import styled from "styled-components";
 import Header from "../header";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 // 파일 상단에 추가
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -26,7 +28,7 @@ const NewMember: React.FC = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch("/register", {
+      const response = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -62,7 +64,7 @@ const NewMember: React.FC = () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams({ uid: email }).toString();
-      const response = await fetch(`/check-id?${queryParams}`, {
+      const response = await fetch(`${API_URL}/check-id?${queryParams}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json"

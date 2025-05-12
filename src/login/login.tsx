@@ -3,6 +3,8 @@ import styled from "styled-components";
 import Header from "../header";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [uid, setUid] = useState("");
@@ -13,7 +15,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch("/login", {
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
