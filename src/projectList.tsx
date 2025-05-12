@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 // 예시 프로젝트 데이터
 const projects = [
   { name: "2025학년도 졸업작품", bold: true },
@@ -34,7 +36,7 @@ const ProjectList: React.FC = () => {
     }
     // 서버에 메시지 요청
     try {
-      const response = await fetch("/message", {
+      const response = await fetch(`${API_URL}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: userEmail }),
