@@ -3,6 +3,8 @@ import styled from "styled-components";
 import Header from "./header";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type CreateResponse = {
@@ -40,7 +42,7 @@ const Create: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("/create", {
+      const response = await fetch(`${API_URL}/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -84,7 +86,7 @@ const Create: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("/message", {
+      const response = await fetch(`${API_URL}/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
