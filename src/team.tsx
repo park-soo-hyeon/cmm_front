@@ -170,19 +170,28 @@ const Team: React.FC = () => {
 
   // 텍스트 내용 변경 핸들러 (Socket.IO 통신 추가)
   const handleTextBoxChange = (idx: number, value: string) => {
-    const node = textBoxes[idx].node;
-    if (!node) return;
+  // 1. 로컬 상태를 즉시 업데이트
+  setTextBoxes(prev =>
+    prev.map((box, i) =>
+      i === idx ? { ...box, value } : box
+    )
+  );
 
-    socketRef.current?.emit("textEvent", {
-      fnc: "update",
-      node,
-      cContent: value,
-      cFont: textBoxes[idx].fontFamily,
-      cColor: textBoxes[idx].color,
-      cSize: textBoxes[idx].fontSize,
-      type: "text"
-    });
-  };
+  // 2. 서버에 변경사항 전송
+  const node = textBoxes[idx].node;
+  if (!node) return;
+
+  socketRef.current?.emit("textEvent", {
+    fnc: "update",
+    node,
+    cContent: value,
+    cFont: textBoxes[idx].fontFamily,
+    cColor: textBoxes[idx].color,
+    cSize: textBoxes[idx].fontSize,
+    type: "text"
+  });
+};
+
 
   // 텍스트 박스 삭제 핸들러 (Socket.IO 통신 추가)
   const handleDelete = (idx: number) => {
