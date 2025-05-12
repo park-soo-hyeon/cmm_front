@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import Draggable from 'react-draggable';
+import { io, Socket } from "socket.io-client";
 
 type TextBox = { 
   x: number; 
@@ -12,17 +13,32 @@ type TextBox = {
   color: string;
   fontSize: number;
   fontFamily: string;
+  node?: string;  // 서버에서 할당하는 고유 ID 추가
 };
+
+interface ServerTextBox {
+  node: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  color: string;
+  size: number;
+  font: string;
+}
 
 const MIN_WIDTH = 50;
 const MIN_HEIGHT = 30;
 const FONT_SIZES = [12, 14, 16, 18, 24, 32];
 const FONT_FAMILIES = ['Arial', 'Helvetica', 'Times New Roman', 'Verdana', 'Courier New'];
+const SOCKET_URL = "http://52.3.33.222:3000";
 
 const Team: React.FC = () => {
   const navigate = useNavigate();
   const mainAreaRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   const [isTextMode, setIsTextMode] = useState(false);
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
@@ -33,6 +49,7 @@ const Team: React.FC = () => {
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState('Arial');
 
+  // 드래그/리사이즈 관련 ref (기존 코드 유지)
   const resizeStart = useRef<{ 
     startX: number; 
     startY: number; 
@@ -48,6 +65,77 @@ const Team: React.FC = () => {
   const resizingIdxRef = useRef(resizingIdx);
   resizingIdxRef.current = resizingIdx;
 
+  // 소켓 연결 및 이벤트 핸들링 (추가된 부분)
+  useEffect(() => {
+    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+    socketRef.current = socket;
+
+    const uId = "user123"; // 실제 구현시 인증 시스템 필요
+    const tId = "1";
+    socket.emit("joinTeam", { uId, tId });
+
+      socket.on("initialize", (serverTextBoxes: ServerTextBox[]) => {
+    setTextBoxes(serverTextBoxes.map((box: ServerTextBox) => ({
+      x: box.x,
+      y: box.y,
+      value: box.text,
+      width: box.width,
+      height: box.height,
+      color: box.color,
+      fontSize: box.size,
+      fontFamily: box.font,
+      node: box.node
+    })));
+  });
+
+    socket.on("addTextBox", (data) => {
+      setTextBoxes(prev => [...prev, {
+        x: data.cLocate.x,
+        y: data.cLocate.y,
+        value: data.cContent,
+        width: data.cScale.width,
+        height: data.cScale.height,
+        color: data.cColor,
+        fontSize: data.cSize,
+        fontFamily: data.cFont,
+        node: data.node
+      }]);
+    });
+
+    socket.on("updateTextBox", (data) => {
+      setTextBoxes(prev => prev.map(box =>
+        box.node === data.node ? { 
+          ...box, 
+          value: data.cContent, 
+          color: data.cColor, 
+          fontSize: data.cSize, 
+          fontFamily: data.cFont 
+        } : box
+      ));
+    });
+
+    socket.on("moveTextBox", (data) => {
+      setTextBoxes(prev => prev.map(box =>
+        box.node === data.node ? { 
+          ...box, 
+          x: data.cLocate.x, 
+          y: data.cLocate.y,
+          width: data.cScale.width,
+          height: data.cScale.height
+        } : box
+      ));
+    });
+
+    socket.on("removeTextBox", (data) => {
+      setTextBoxes(prev => prev.filter(box => box.node !== data.node));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // 스타일 변경 핸들러 (기존 코드 유지)
   useEffect(() => {
     if (focusedIdx !== null) {
       const currentBox = textBoxes[focusedIdx];
@@ -57,6 +145,7 @@ const Team: React.FC = () => {
     }
   }, [focusedIdx, textBoxes]);
 
+  // 텍스트 박스 생성 핸들러 (Socket.IO 통신 추가)
   const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTextMode || !mainAreaRef.current) return;
     const rect = mainAreaRef.current.getBoundingClientRect();
@@ -64,30 +153,81 @@ const Team: React.FC = () => {
     const maxY = rect.height - 40;
     const x = Math.max(0, Math.min(e.clientX - rect.left, maxX));
     const y = Math.max(0, Math.min(e.clientY - rect.top, maxY));
-    
-    setTextBoxes((prev) => [...prev, { 
-      x, y, value: "", 
-      width: 200, height: 40,
-      color: '#000000',
-      fontSize: 16,
-      fontFamily: 'Arial'
-    }]);
+
+    socketRef.current?.emit("textEvent", {
+      fnc: "new",
+      cLocate: { x, y },
+      cScale: { width: 200, height: 40 },
+      cFont: fontFamily,
+      cColor: textColor,
+      cSize: fontSize,
+      cContent: "",
+      type: "text"
+    });
+
     setIsTextMode(false);
   };
 
+  // 텍스트 내용 변경 핸들러 (Socket.IO 통신 추가)
   const handleTextBoxChange = (idx: number, value: string) => {
-    setTextBoxes((prev) => {
-      const copy = [...prev];
-      copy[idx].value = value;
-      return copy;
+    const node = textBoxes[idx].node;
+    if (!node) return;
+
+    socketRef.current?.emit("textEvent", {
+      fnc: "update",
+      node,
+      cContent: value,
+      cFont: textBoxes[idx].fontFamily,
+      cColor: textBoxes[idx].color,
+      cSize: textBoxes[idx].fontSize,
+      type: "text"
     });
   };
 
+  // 텍스트 박스 삭제 핸들러 (Socket.IO 통신 추가)
   const handleDelete = (idx: number) => {
-    setTextBoxes((prev) => prev.filter((_, i) => i !== idx));
-    setFocusedIdx(null);
+    const node = textBoxes[idx].node;
+    if (!node) return;
+
+    socketRef.current?.emit("textEvent", {
+      fnc: "delete",
+      node,
+      type: "text"
+    });
   };
 
+  // 드래그 시작 핸들러 (Socket.IO 통신 추가)
+  const handleDragStart = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggingIdx(idx);
+    dragOffset.current = {
+      x: e.clientX - textBoxesRef.current[idx].x,
+      y: e.clientY - textBoxesRef.current[idx].y,
+    };
+
+    const node = textBoxes[idx].node;
+    if (node) {
+      socketRef.current?.emit("textEvent", {
+        fnc: "move",
+        node,
+        cLocate: { 
+          x: textBoxes[idx].x, 
+          y: textBoxes[idx].y 
+        },
+        cScale: { 
+          width: textBoxes[idx].width, 
+          height: textBoxes[idx].height 
+        },
+        type: "text"
+      });
+    }
+
+    window.addEventListener("mousemove", handleDragging);
+    window.addEventListener("mouseup", handleDragOrResizeEnd);
+  };
+
+  // 드래그 중 핸들러 (기존 코드 유지)
   const handleDragging = useCallback((e: MouseEvent) => {
     const idx = draggingIdxRef.current;
     if (idx === null || !mainAreaRef.current) return;
@@ -103,6 +243,7 @@ const Team: React.FC = () => {
     });
   }, []);
 
+  // 드래그 종료 핸들러 (기존 코드 유지)
   const handleDragOrResizeEnd = useCallback(() => {
     setDraggingIdx(null);
     setResizingIdx(null);
@@ -111,21 +252,7 @@ const Team: React.FC = () => {
     window.removeEventListener("mouseup", handleDragOrResizeEnd);
   }, [handleDragging]);
 
-  const handleDragStart = (
-    idx: number,
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setDraggingIdx(idx);
-    dragOffset.current = {
-      x: e.clientX - textBoxesRef.current[idx].x,
-      y: e.clientY - textBoxesRef.current[idx].y,
-    };
-    window.addEventListener("mousemove", handleDragging);
-    window.addEventListener("mouseup", handleDragOrResizeEnd);
-  };
-
+  // 리사이즈 시작 핸들러 (Socket.IO 통신 추가)
   const handleResizeStart = (
     idx: number,
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
@@ -139,10 +266,29 @@ const Team: React.FC = () => {
       startW: textBoxesRef.current[idx].width,
       startH: textBoxesRef.current[idx].height,
     };
+
+    const node = textBoxes[idx].node;
+    if (node) {
+      socketRef.current?.emit("textEvent", {
+        fnc: "move",
+        node,
+        cLocate: { 
+          x: textBoxes[idx].x, 
+          y: textBoxes[idx].y 
+        },
+        cScale: { 
+          width: textBoxes[idx].width, 
+          height: textBoxes[idx].height 
+        },
+        type: "text"
+      });
+    }
+
     window.addEventListener("mousemove", handleResizing);
     window.addEventListener("mouseup", handleDragOrResizeEnd);
   };
 
+  // 리사이즈 중 핸들러 (기존 코드 유지)
   const handleResizing = useCallback((e: MouseEvent) => {
     const idx = resizingIdxRef.current;
     if (idx === null || !mainAreaRef.current) return;
@@ -162,20 +308,25 @@ const Team: React.FC = () => {
     });
   }, []);
 
+  // 스타일 변경 핸들러 (Socket.IO 통신 추가)
   const handleStyleChange = (type: string, value: string | number) => {
     if (focusedIdx === null) return;
-    setTextBoxes(prev => {
-      const copy = [...prev];
-      const current = copy[focusedIdx];
-      switch(type) {
-        case 'color': current.color = value as string; break;
-        case 'fontSize': current.fontSize = value as number; break;
-        case 'fontFamily': current.fontFamily = value as string; break;
-      }
-      return copy;
-    });
+    const node = textBoxes[focusedIdx].node;
+    if (!node) return;
+
+    const updateData = {
+      fnc: "update",
+      node,
+      type: "text",
+      [type === 'color' ? 'cColor' : 
+       type === 'fontSize' ? 'cSize' : 
+       'cFont']: value
+    };
+
+    socketRef.current?.emit("textEvent", updateData);
   };
 
+  // UI 렌더링 부분 (기존 코드 전체 유지)
   return (
     <Container>
       <Content>
@@ -317,8 +468,7 @@ const Team: React.FC = () => {
   );
 };
 
-export default Team;
-
+// 스타일 컴포넌트 (기존 코드 전체 유지)
 const Container = styled.div`
   font-family: Arial, sans-serif;
   background-color: #f6f0ff;
@@ -574,3 +724,5 @@ const PenIcon = () => (
     <path d="M18 6L21 3L18 6ZM18 6L15 3L18 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
+
+export default Team;
