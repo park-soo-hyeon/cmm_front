@@ -1,35 +1,80 @@
-import React from "react";
+import React, { useRef, useCallback, useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
+import Draggable from 'react-draggable';
 
-type TextBox = { x: number; y: number; value: string };
+type TextBox = { 
+  x: number; 
+  y: number; 
+  value: string; 
+  width: number; 
+  height: number;
+  color: string;
+  fontSize: number;
+  fontFamily: string;
+};
+
+const MIN_WIDTH = 50;
+const MIN_HEIGHT = 30;
+const FONT_SIZES = [12, 14, 16, 18, 24, 32];
+const FONT_FAMILIES = ['Arial', 'Helvetica', 'Times New Roman', 'Verdana', 'Courier New'];
 
 const Team: React.FC = () => {
   const navigate = useNavigate();
+  const mainAreaRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
-  const [isTextMode, setIsTextMode] = React.useState(false);
-  const [textBoxes, setTextBoxes] = React.useState<TextBox[]>([]);
-  const [focusedIdx, setFocusedIdx] = React.useState<number | null>(null);
-  const [draggingIdx, setDraggingIdx] = React.useState<number | null>(null);
-  const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isTextMode, setIsTextMode] = useState(false);
+  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
+  const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [resizingIdx, setResizingIdx] = useState<number | null>(null);
+  const [textColor, setTextColor] = useState('#000000');
+  const [fontSize, setFontSize] = useState(16);
+  const [fontFamily, setFontFamily] = useState('Arial');
 
-  // 반드시 useRef로 최신 상태를 참조해야 함!
-  const textBoxesRef = React.useRef(textBoxes);
+  const resizeStart = useRef<{ 
+    startX: number; 
+    startY: number; 
+    startW: number; 
+    startH: number; 
+  }>({ startX: 0, startY: 0, startW: 0, startH: 0 });
+
+  const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const textBoxesRef = useRef(textBoxes);
   textBoxesRef.current = textBoxes;
-  const draggingIdxRef = React.useRef(draggingIdx);
+  const draggingIdxRef = useRef(draggingIdx);
   draggingIdxRef.current = draggingIdx;
+  const resizingIdxRef = useRef(resizingIdx);
+  resizingIdxRef.current = resizingIdx;
 
-  // 메인 영역 클릭 시 텍스트 박스 생성
+  useEffect(() => {
+    if (focusedIdx !== null) {
+      const currentBox = textBoxes[focusedIdx];
+      setTextColor(currentBox.color);
+      setFontSize(currentBox.fontSize);
+      setFontFamily(currentBox.fontFamily);
+    }
+  }, [focusedIdx, textBoxes]);
+
   const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isTextMode) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setTextBoxes((prev) => [...prev, { x, y, value: "" }]);
+    if (!isTextMode || !mainAreaRef.current) return;
+    const rect = mainAreaRef.current.getBoundingClientRect();
+    const maxX = rect.width - 200;
+    const maxY = rect.height - 40;
+    const x = Math.max(0, Math.min(e.clientX - rect.left, maxX));
+    const y = Math.max(0, Math.min(e.clientY - rect.top, maxY));
+    
+    setTextBoxes((prev) => [...prev, { 
+      x, y, value: "", 
+      width: 200, height: 40,
+      color: '#000000',
+      fontSize: 16,
+      fontFamily: 'Arial'
+    }]);
     setIsTextMode(false);
   };
 
-  // 텍스트 박스 내용 변경
   const handleTextBoxChange = (idx: number, value: string) => {
     setTextBoxes((prev) => {
       const copy = [...prev];
@@ -38,35 +83,34 @@ const Team: React.FC = () => {
     });
   };
 
-  // 텍스트 박스 삭제
   const handleDelete = (idx: number) => {
     setTextBoxes((prev) => prev.filter((_, i) => i !== idx));
     setFocusedIdx(null);
   };
 
-  // 드래그 중 (useRef로 최신 상태 참조)
-  const handleDragging = React.useCallback((e: MouseEvent) => {
+  const handleDragging = useCallback((e: MouseEvent) => {
     const idx = draggingIdxRef.current;
-    if (idx === null) return;
+    if (idx === null || !mainAreaRef.current) return;
+    const rect = mainAreaRef.current.getBoundingClientRect();
+    const box = textBoxesRef.current[idx];
+    const newX = Math.max(0, Math.min(e.clientX - dragOffset.current.x, rect.width - box.width));
+    const newY = Math.max(0, Math.min(e.clientY - dragOffset.current.y, rect.height - box.height));
+    
     setTextBoxes((prev) => {
       const copy = [...prev];
-      copy[idx] = {
-        ...copy[idx],
-        x: e.clientX - dragOffset.current.x,
-        y: e.clientY - dragOffset.current.y,
-      };
+      copy[idx] = { ...copy[idx], x: newX, y: newY };
       return copy;
     });
   }, []);
 
-  // 드래그 종료
-  const handleDragEnd = React.useCallback(() => {
+  const handleDragOrResizeEnd = useCallback(() => {
     setDraggingIdx(null);
+    setResizingIdx(null);
     window.removeEventListener("mousemove", handleDragging);
-    window.removeEventListener("mouseup", handleDragEnd);
+    window.removeEventListener("mousemove", handleResizing);
+    window.removeEventListener("mouseup", handleDragOrResizeEnd);
   }, [handleDragging]);
 
-  // 드래그 시작
   const handleDragStart = (
     idx: number,
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
@@ -79,13 +123,62 @@ const Team: React.FC = () => {
       y: e.clientY - textBoxesRef.current[idx].y,
     };
     window.addEventListener("mousemove", handleDragging);
-    window.addEventListener("mouseup", handleDragEnd);
+    window.addEventListener("mouseup", handleDragOrResizeEnd);
+  };
+
+  const handleResizeStart = (
+    idx: number,
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setResizingIdx(idx);
+    resizeStart.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: textBoxesRef.current[idx].width,
+      startH: textBoxesRef.current[idx].height,
+    };
+    window.addEventListener("mousemove", handleResizing);
+    window.addEventListener("mouseup", handleDragOrResizeEnd);
+  };
+
+  const handleResizing = useCallback((e: MouseEvent) => {
+    const idx = resizingIdxRef.current;
+    if (idx === null || !mainAreaRef.current) return;
+    const rect = mainAreaRef.current.getBoundingClientRect();
+    const { startX, startY, startW, startH } = resizeStart.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const maxWidth = rect.width - textBoxesRef.current[idx].x;
+    const maxHeight = rect.height - textBoxesRef.current[idx].y;
+    const newWidth = Math.max(MIN_WIDTH, Math.min(startW + dx, maxWidth));
+    const newHeight = Math.max(MIN_HEIGHT, Math.min(startH + dy, maxHeight));
+    
+    setTextBoxes((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], width: newWidth, height: newHeight };
+      return copy;
+    });
+  }, []);
+
+  const handleStyleChange = (type: string, value: string | number) => {
+    if (focusedIdx === null) return;
+    setTextBoxes(prev => {
+      const copy = [...prev];
+      const current = copy[focusedIdx];
+      switch(type) {
+        case 'color': current.color = value as string; break;
+        case 'fontSize': current.fontSize = value as number; break;
+        case 'fontFamily': current.fontFamily = value as string; break;
+      }
+      return copy;
+    });
   };
 
   return (
     <Container>
       <Content>
-        {/* 사이드바 */}
         <Sidebar>
           <Logo onClick={() => navigate("/")}>BlankSync</Logo>
           <SidebarTitle>
@@ -108,62 +201,112 @@ const Team: React.FC = () => {
             페이지 생성 / 삭제
           </SidebarFooter>
         </Sidebar>
-        <MainArea
+
+        <MainArea 
+          ref={mainAreaRef}
+          $isTextMode={isTextMode} 
           onClick={handleMainAreaClick}
-          $isTextMode={isTextMode}
         >
-          {/* 툴바 */}
-          <FloatingToolbar>
-            <ToolIcon
-              onClick={() => setIsTextMode((prev) => !prev)}
-              style={{ color: isTextMode ? "#6b5b95" : undefined }}
-              title="텍스트 상자 생성 모드"
-            >
-              T
-            </ToolIcon>
-            <ToolIcon>
-              <ImageIcon />
-            </ToolIcon>
-            <ToolIcon>
-              <PenIcon />
-            </ToolIcon>
-            <ToolbarDivider />
-            <ToolIcon>+</ToolIcon>
-            <ColorCircle color="#ff0000" />
-            <ColorCircle color="#00ff00" />
-            <ColorCircle color="#0000ff" />
-            <ColorCircle color="#ffb700" />
-          </FloatingToolbar>
+          <Draggable 
+            nodeRef={toolbarRef as React.RefObject<HTMLElement>}
+            bounds="parent"
+          >
+            <FloatingToolbar ref={toolbarRef}>
+              {focusedIdx === null ? (
+                <>
+                  <ToolIcon
+                    onClick={() => setIsTextMode((prev) => !prev)}
+                    style={{ color: isTextMode ? "#6b5b95" : undefined }}
+                    title="텍스트 상자 생성 모드"
+                  >
+                    T
+                  </ToolIcon>
+                  <ToolIcon>
+                    <ImageIcon />
+                  </ToolIcon>
+                  <ToolIcon>
+                    <PenIcon />
+                  </ToolIcon>
+                  <ToolbarDivider />
+                  <ToolIcon>+</ToolIcon>
+                  <ColorCircle color="#ff0000" />
+                  <ColorCircle color="#00ff00" />
+                  <ColorCircle color="#0000ff" />
+                  <ColorCircle color="#ffb700" />
+                </>
+              ) : (
+                <>
+                  <ColorPicker
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => handleStyleChange('color', e.target.value)}
+                  />
+                  <SelectBox
+                    value={fontSize}
+                    onChange={(e) => handleStyleChange('fontSize', parseInt(e.target.value))}
+                  >
+                    {FONT_SIZES.map(size => (
+                      <option key={size} value={size}>{size}px</option>
+                    ))}
+                  </SelectBox>
+                  <SelectBox
+                    value={fontFamily}
+                    onChange={(e) => handleStyleChange('fontFamily', e.target.value)}
+                  >
+                    {FONT_FAMILIES.map(font => (
+                      <option key={font} value={font}>{font}</option>
+                    ))}
+                  </SelectBox>
+                </>
+              )}
+            </FloatingToolbar>
+          </Draggable>
 
           {textBoxes.map((box, idx) => (
             <TextBoxWrap
               key={idx}
-              style={{ left: box.x, top: box.y }}
+              style={{ 
+                left: box.x, 
+                top: box.y,
+                width: box.width,
+                height: box.height 
+              }}
               tabIndex={0}
               onFocus={() => setFocusedIdx(idx)}
               onBlur={() => setFocusedIdx((cur) => (cur === idx ? null : cur))}
             >
               <TextBoxInput
+                width={box.width}
+                height={box.height}
                 value={box.value}
-                onChange={e => handleTextBoxChange(idx, e.target.value)}
+                onChange={(e) => handleTextBoxChange(idx, e.target.value)}
                 autoFocus={focusedIdx === idx}
-                onFocus={() => setFocusedIdx(idx)}
-                onDragStart={e => e.preventDefault()}
+                style={{
+                  color: box.color,
+                  fontSize: `${box.fontSize}px`,
+                  fontFamily: box.fontFamily
+                }}
               />
               {focusedIdx === idx && (
-                <ButtonGroup>
-                  <CircleBtn
-                    color="#00d26a"
-                    title="이동"
-                    onMouseDown={e => handleDragStart(idx, e)}
-                    onDragStart={e => e.preventDefault()}
-                  />
-                  <CircleBtn
-                    color="#ff4a4a"
-                    title="삭제"
-                    onClick={() => handleDelete(idx)}
-                  />
-                </ButtonGroup>
+                <>
+                  <ButtonGroup>
+                    <CircleBtn
+                      color="#00d26a"
+                      title="이동"
+                      onMouseDown={(e) => handleDragStart(idx, e)}
+                    />
+                    <CircleBtn
+                      color="#ff4a4a"
+                      title="삭제"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(idx);
+                      }}
+                    />
+                  </ButtonGroup>
+                  <ResizeHandle onMouseDown={(e) => handleResizeStart(idx, e)} />
+                </>
               )}
             </TextBoxWrap>
           ))}
@@ -176,11 +319,6 @@ const Team: React.FC = () => {
 
 export default Team;
 
-// 아래 스타일 컴포넌트는 기존 코드와 동일하게 사용하세요!
-/* ... (생략, 기존 코드 그대로 사용) ... */
-
-
-// Styled Components
 const Container = styled.div`
   font-family: Arial, sans-serif;
   background-color: #f6f0ff;
@@ -196,7 +334,6 @@ const Content = styled.div`
   height: calc(100vh - 70px);
 `;
 
-// 사이드바
 const Sidebar = styled.div`
   width: 280px;
   background: #e3e0f8;
@@ -264,16 +401,15 @@ const SidebarFooter = styled.div`
   padding: 18px 0 12px 0;
 `;
 
-// 메인 영역
 const MainArea = styled.div<{ $isTextMode: boolean }>`
   position: relative;
   width: 100vw;
   height: 100vh;
   background: #f6f0ff;
   cursor: ${({ $isTextMode }) => ($isTextMode ? "text" : "default")};
+  overflow: hidden;
 `;
 
-// 부유 툴바
 const FloatingToolbar = styled.div`
   display: flex;
   align-items: center;
@@ -284,9 +420,9 @@ const FloatingToolbar = styled.div`
   padding: 6px 14px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
   width: max-content;
-  margin: 0 auto;
   position: relative;
   z-index: 10;
+  cursor: move;
 `;
 
 const ToolIcon = styled.button`
@@ -317,7 +453,7 @@ const ColorCircle = styled.button<{ color: string }>`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: ${(props) => props.color};
+  background: ${({color}) => color};
   border: none;
   cursor: pointer;
   margin: 0 2px;
@@ -326,40 +462,71 @@ const ColorCircle = styled.button<{ color: string }>`
   }
 `;
 
-// 텍스트 박스 input 스타일
-const TextBoxInput = styled.input`
-  font-size: 16px;
-  padding: 4px 8px;
-  border: 1px solid #bdbdbd;
-  border-radius: 4px;
-  background: #fff;
-  color: #333;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-`;
-
-
 const TextBoxWrap = styled.div`
   position: absolute;
-  min-width: 120px;
-  z-index: 10;
-  outline: none;
+  min-width: ${MIN_WIDTH}px;
+  min-height: ${MIN_HEIGHT}px;
+  background: transparent;
+  border: 2px solid rgba(107, 91, 149, 0.5);
+  border-radius: 4px;
+  box-sizing: border-box;
+  padding: 0;
+  &:hover {
+    border-color: #6b5b95;
+  }
 `;
 
-// SVG 아이콘 컴포넌트
-const ImageIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
-    <path d="M21 15L16 10L9 18" stroke="currentColor" strokeWidth="2" />
-  </svg>
-);
+const TextBoxInput = styled.textarea<{width: number, height: number}>`
+  width: ${({width}) => width - 16}px;
+  height: ${({height}) => height - 16}px;
+  font-size: 16px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  resize: none;
+  outline: none;
+  color: #333;
+  font-family: Arial, sans-serif;
+  min-width: ${MIN_WIDTH - 16}px;
+  min-height: ${MIN_HEIGHT - 16}px;
+  box-sizing: border-box;
+`;
 
-const PenIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 21L12 12M18 6L12 12M12 12L8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M18 6L21 3L18 6ZM18 6L15 3L18 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
+const ButtonGroup = styled.div`
+  position: absolute;
+  top: -18px;
+  right: 0;
+  display: flex;
+  gap: 2px;
+`;
+
+const CircleBtn = styled.button<{ color: string }>`
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: ${({ color }) => color};
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.1s;
+  &:active {
+    transform: scale(0.92);
+  }
+`;
+
+const ResizeHandle = styled.div`
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  background: #6b5b95;
+  border-radius: 2px;
+  cursor: nwse-resize;
+  &:hover {
+    background: #8a76c5;
+  }
+`;
 
 const FloatingButton = styled.button`
   position: fixed;
@@ -377,25 +544,33 @@ const FloatingButton = styled.button`
   z-index: 10;
 `;
 
-const ButtonGroup = styled.div`
-  position: absolute;
-  top: -18px;
-  right: -8px;
-  display: flex;
-  gap: 6px;
+const ColorPicker = styled.input`
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  cursor: pointer;
 `;
 
-const CircleBtn = styled.button<{ color: string }>`
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: ${({ color }) => color};
-  border: 1.5px solid #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-  cursor: pointer;
-  display: inline-block;
-  transition: transform 0.1s;
-  &:active {
-    transform: scale(0.92);
-  }
+const SelectBox = styled.select`
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: white;
 `;
+
+const ImageIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+    <path d="M21 15L16 10L9 18" stroke="currentColor" strokeWidth="2" />
+  </svg>
+);
+
+const PenIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 21L12 12M18 6L12 12M12 12L8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M18 6L21 3L18 6ZM18 6L15 3L18 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
