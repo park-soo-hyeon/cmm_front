@@ -20,10 +20,11 @@ const Login: React.FC = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ uid, upassword })
+        body: JSON.stringify({ uid: uid, upassword: upassword })
       });
-      const result = await response.json(); // true or false가 반환된다고 가정
-      if (result == true) {
+      const result = await response.text(); // string uid 값 받기
+      if (result === uid) {
+        console.log("3");
         alert("로그인 성공!");
         navigate("/");
         // navigate("/dashboard"); // 로그인 성공 시 이동할 페이지로 라우팅
@@ -68,7 +69,7 @@ const Login: React.FC = () => {
               required
             />
           </InputWrapper>
-          <Button type="submit" disabled={loading} onClick={handleLogin}>
+          <Button type="submit" disabled={loading}>
             {loading ? "로그인 중..." : "로그인"}
           </Button>
         </Form>
@@ -126,7 +127,7 @@ const SignUpLink = styled.a`
   cursor: pointer;
 `;
 
-const Form = styled.div`
+const Form = styled.form`
   width: 100%;
   max-width: 450px;
   display: flex;

@@ -72,7 +72,7 @@ const NewMember: React.FC = () => {
       });
       
       const result = await response.json(); // 서버에서 boolean 반환
-      if (result == false) {
+      if (result === false) {
         alert("사용 가능한 이메일입니다.");
       } else {
         alert("이미 사용 중인 이메일입니다.");
