@@ -32,7 +32,7 @@ const MIN_WIDTH = 50;
 const MIN_HEIGHT = 30;
 const FONT_SIZES = [12, 14, 16, 18, 24, 32];
 const FONT_FAMILIES = ['Arial', 'Helvetica', 'Times New Roman', 'Verdana', 'Courier New'];
-const SOCKET_URL = "http://54.160.4.15:3000";
+const SOCKET_URL = "http://44.212.5.151:3000";
 
 const Team: React.FC = () => {
   const navigate = useNavigate();
