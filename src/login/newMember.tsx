@@ -28,7 +28,7 @@ const NewMember: React.FC = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/register`, {
+      const response = await fetch(`${API_URL}/api/users/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -63,8 +63,8 @@ const NewMember: React.FC = () => {
   
     setLoading(true);
     try {
-      const queryParams = new URLSearchParams({ uid: email }).toString();
-      const response = await fetch(`${API_URL}/check-id?${queryParams}`, {
+      const queryParams = new URLSearchParams({ id: email }).toString();
+      const response = await fetch(`${API_URL}/api/users/check-id?${queryParams}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json"
@@ -72,7 +72,7 @@ const NewMember: React.FC = () => {
       });
       
       const result = await response.json(); // 서버에서 boolean 반환
-      if (result === true) {
+      if (result == false) {
         alert("사용 가능한 이메일입니다.");
       } else {
         alert("이미 사용 중인 이메일입니다.");

@@ -15,7 +15,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${API_URL}/api/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
         body: JSON.stringify({ uid, upassword })
       });
       const result = await response.json(); // true or false가 반환된다고 가정
-      if (result === true) {
+      if (result == true) {
         alert("로그인 성공!");
         navigate("/");
         // navigate("/dashboard"); // 로그인 성공 시 이동할 페이지로 라우팅
@@ -68,7 +68,7 @@ const Login: React.FC = () => {
               required
             />
           </InputWrapper>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} onClick={handleLogin}>
             {loading ? "로그인 중..." : "로그인"}
           </Button>
         </Form>
