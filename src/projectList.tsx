@@ -1,20 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-// 예시 프로젝트 데이터
-const projects = [
-  { name: "2025학년도 졸업작품", bold: true },
-  { name: "교내경진대회" },
-  { name: "2025 EXPO", bold: true },
-  { name: "백엔드 프로젝트" },
-  { name: "IoT 시스템", italic: true },
-  { name: "웹/앱 페이지 제작 프로젝트" },
-];
+type TeamData = {
+  tid: number;
+  tname: string;
+};
 
-// 메시지 타입
 type MessageData = {
   tid: number;
   uid: string;
@@ -25,6 +19,37 @@ const ProjectList: React.FC = () => {
   const navigate = useNavigate();
   const [showMessage, setShowMessage] = useState(false);
   const [message, setMessage] = useState<MessageData | null>(null);
+  const [teams, setTeams] = useState<TeamData[]>([]);
+
+  // 팀 목록 가져오기
+  useEffect(() => {
+    const fetchTeams = async () => {
+      const userEmail = localStorage.getItem("userEmail");
+      if (!userEmail) {
+        alert("로그인이 필요합니다.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/teams/list`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uid: userEmail }),
+        });
+
+        if (!response.ok) {
+          throw new Error("팀 목록을 불러오는데 실패했습니다.");
+        }
+
+        const data: TeamData[] = await response.json();
+        setTeams(data);
+      } catch (error) {
+        console.error("Error fetching teams:", error);
+      }
+    };
+
+    fetchTeams();
+  }, []);
 
   // 메시지 모달 열기
   const handleMailClick = async () => {
@@ -36,7 +61,7 @@ const ProjectList: React.FC = () => {
     }
     // 서버에 메시지 요청
     try {
-      const response = await fetch(`${API_URL}/message`, {
+      const response = await fetch(`${API_URL}/api/users/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: userEmail }),
@@ -81,9 +106,9 @@ const ProjectList: React.FC = () => {
         <Sidebar>
           <SidebarTitle>○○○님의 프로젝트</SidebarTitle>
           <SidebarList>
-            {projects.map((p, i) => (
-              <SidebarItem key={i} bold={p.bold} italic={p.italic}>
-                {p.name}
+            {teams.map((team, i) => (
+              <SidebarItem key={i}>
+                {team.tname}
               </SidebarItem>
             ))}
           </SidebarList>
@@ -118,10 +143,10 @@ const ProjectList: React.FC = () => {
         </Sidebar>
         <MainArea>
           <ProjectGrid>
-            {projects.map((p, i) => (
+            {teams.map((team, i) => (
               <ProjectCard key={i}>
-                <ProjectCardLabel bold={p.bold} italic={p.italic}>
-                  {p.name}
+                <ProjectCardLabel>
+                  {team.tname}
                 </ProjectCardLabel>
               </ProjectCard>
             ))}
@@ -213,12 +238,10 @@ const SidebarList = styled.ul`
   flex: 1;
 `;
 
-const SidebarItem = styled.li<{ bold?: boolean; italic?: boolean }>`
+const SidebarItem = styled.li`
   font-size: 1.07rem;
   margin-bottom: 13px;
-  font-weight: ${(props) => (props.bold ? 700 : 400)};
-  font-style: ${(props) => (props.italic ? "italic" : "normal")};
-  letter-spacing: 0.01em;
+  font-weight: 400;
   color: #333;
 `;
 
@@ -341,11 +364,10 @@ const ProjectCard = styled.div`
   box-shadow: 0 2px 8px rgba(180, 150, 255, 0.07);
 `;
 
-const ProjectCardLabel = styled.div<{ bold?: boolean; italic?: boolean }>`
+const ProjectCardLabel = styled.div`
   width: 100%;
   text-align: center;
   font-size: 1.1rem;
-  font-weight: ${(props) => (props.bold ? 700 : 400)};
-  font-style: ${(props) => (props.italic ? "italic" : "normal")};
+  font-weight: 400;
   color: #333;
 `;

@@ -4,6 +4,13 @@ import { useNavigate } from "react-router-dom";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const isLoggedIn = !!localStorage.getItem("userEmail");
+
+  const handleLogout = () => {
+    localStorage.removeItem("userEmail");
+    navigate("/");
+    window.location.reload();
+  };
 
   return (
     <HeaderContainer>
@@ -14,8 +21,17 @@ const Header: React.FC = () => {
         <NavItem onClick={() => navigate("/projectList")}>나의 프로젝트</NavItem>
       </Nav>
       <LoginLinks>
-        <LinkItem onClick={() => navigate("/login")}>로그인</LinkItem> / 
-        <LinkItem onClick={() => navigate("/signup")}> 회원가입</LinkItem>
+        {isLoggedIn ? (
+          <>
+            <LinkItem onClick={() => navigate("/mypage")}>마이페이지</LinkItem> /
+            <LinkItem onClick={handleLogout}>로그아웃</LinkItem>
+          </>
+        ) : (
+          <>
+            <LinkItem onClick={() => navigate("/login")}>로그인</LinkItem> /
+            <LinkItem onClick={() => navigate("/signup")}>회원가입</LinkItem>
+          </>
+        )}
       </LoginLinks>
     </HeaderContainer>
   );

@@ -86,7 +86,7 @@ const Create: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/message`, {
+      const response = await fetch(`${API_URL}/api/teams/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
