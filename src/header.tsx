@@ -39,7 +39,6 @@ const Header: React.FC = () => {
 
 export default Header;
 
-// Styled Components
 const HeaderContainer = styled.header`
   display: flex;
   justify-content: space-between;

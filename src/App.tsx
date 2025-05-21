@@ -9,6 +9,7 @@ import Create from "./create";
 import Team from "./team";
 import ProjectList from "./projectList";
 import Advice from "./advice";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
@@ -67,9 +68,30 @@ const App: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Terms />} />
         <Route path="/signup2" element={<NewMember />} />
-        <Route path="/create" element={<Create />} />
-        <Route path="/team" element={<Team />} />
-        <Route path="/projectList" element={<ProjectList />} />
+        <Route
+          path="/create"
+          element={
+            <ProtectedRoute>
+              <Create />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute>
+              <Team />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projectList"
+          element={
+            <ProtectedRoute>
+              <ProjectList />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/advice" element={<Advice />} />
       </Routes>
     </Router>

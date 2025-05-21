@@ -35,10 +35,6 @@ const Create: React.FC = () => {
     }
 
     const creatorEmail = localStorage.getItem("userEmail");
-    if (!creatorEmail) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
 
     setLoading(true);
     try {
@@ -100,11 +96,43 @@ const Create: React.FC = () => {
       const result: boolean = await response.json();
 
       if (result === true) {
-        alert("팀원 추가 성공!");
+        alert("팀원 요청 성공!");
         setEmails([...emails, memberEmail]);
         setMemberEmail("");
       } else {
-        alert("팀원 추가에 실패했습니다.");
+        alert("팀원 요청에 실패했습니다.");
+      }
+    } catch (error) {
+      alert("서버와의 통신에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 팀원 삭제(POST /message/delete)
+  const handleDeleteEmail = async (emailToDelete: string) => {
+    if (tid === null) {
+      alert("팀 ID가 없습니다.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/teams/message/delete`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          tid: tid,
+          uid: emailToDelete
+        })
+      });
+      const result: boolean = await response.json();
+      if (result === true) {
+        alert("팀원 요청이 취소되었습니다!");
+        setEmails(emails.filter((email) => email !== emailToDelete));
+      } else {
+        alert("팀원 요청 취소에 실패했습니다.");
       }
     } catch (error) {
       alert("서버와의 통신에 실패했습니다.");
@@ -164,7 +192,16 @@ const Create: React.FC = () => {
                 </ButtonRow>
                 <EmailList>
                   {emails.map((email, idx) => (
-                    <EmailItem key={idx}>{email}</EmailItem>
+                    <EmailItem key={idx}>
+                      {email}
+                      <DeleteButton
+                        onClick={() => handleDeleteEmail(email)}
+                        disabled={loading}
+                        title="팀원 요청 삭제"
+                      >
+                        ×
+                      </DeleteButton>
+                    </EmailItem>
                   ))}
                 </EmailList>
                 {emails.length >= 3 && (
@@ -248,9 +285,6 @@ const ConfirmButton = styled.button`
   }
 `;
 
-const CreateButton = styled(ConfirmButton)`
-  background: #22c55e;
-`;
 
 const ButtonRow = styled.div`
   display: flex;
@@ -269,6 +303,9 @@ const EmailItem = styled.li`
   font-size: 1rem;
   padding: 2px 0;
   color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const MaxNotice = styled.div`
@@ -291,5 +328,29 @@ const CloseButton = styled.button`
 
   &:hover {
     color: #333;
+  }
+`;
+
+const DeleteButton = styled.button`
+  margin-left: 12px;
+  background: none;
+  border: none;
+  color: #e53e3e;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  &:hover {
+    background: #fbe9e9;
+  }
+  &:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    background: none;
   }
 `;
