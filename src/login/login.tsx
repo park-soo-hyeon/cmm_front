@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import Header from "../header";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -10,6 +11,7 @@ const Login: React.FC = () => {
   const [uid, setUid] = useState("");
   const [upassword, setUpassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +28,8 @@ const Login: React.FC = () => {
       if (result === uid) {
         console.log("3");
         alert("로그인 성공!");
+        login(uid);
         navigate("/");
-        // navigate("/dashboard"); // 로그인 성공 시 이동할 페이지로 라우팅
       } else {
         alert("아이디 또는 비밀번호가 올바르지 않습니다.");
       }

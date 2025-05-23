@@ -49,11 +49,12 @@ const Create: React.FC = () => {
         })
       });
 
-      const data: CreateResponse = await response.json();
+      const text = await response.text();      // 응답을 문자열로 받음
+      const tid = parseInt(text, 10);         // 문자열을 int로 변환
 
-      if (data.success && data.tid) {
-        alert(`팀 "${teamName}" 생성 성공! (팀 ID: ${data.tid})`);
-        setTid(data.tid); // tid 저장
+      if (!isNaN(tid) && tid > 0) {
+        alert(`팀 "${teamName}" 생성 성공! (팀 ID: ${tid})`);
+        setTid(tid); // tid 저장
         setModalStep(2); // 팀원 추가 모달로 이동
       } else {
         alert("팀 생성에 실패했습니다.");
@@ -127,13 +128,8 @@ const Create: React.FC = () => {
           uid: emailToDelete
         })
       });
-      const result: boolean = await response.json();
-      if (result === true) {
-        alert("팀원 요청이 취소되었습니다!");
-        setEmails(emails.filter((email) => email !== emailToDelete));
-      } else {
-        alert("팀원 요청 취소에 실패했습니다.");
-      }
+      setEmails(emails.filter((email) => email !== emailToDelete));
+      alert("팀원 요청이 취소되었습니다!");
     } catch (error) {
       alert("서버와의 통신에 실패했습니다.");
     } finally {
@@ -189,6 +185,12 @@ const Create: React.FC = () => {
                   >
                     {loading ? "추가 중..." : "추가"}
                   </ConfirmButton>
+                  <CompleteButton
+                    onClick={() => navigate("/team")}
+                    disabled={emails.length === 0}
+                  >
+                    완료
+                </CompleteButton>
                 </ButtonRow>
                 <EmailList>
                   {emails.map((email, idx) => (
@@ -353,4 +355,9 @@ const DeleteButton = styled.button`
     cursor: not-allowed;
     background: none;
   }
+`;
+
+const CompleteButton = styled(ConfirmButton)`
+  background: #3b82f6;
+  margin-right: 0;
 `;

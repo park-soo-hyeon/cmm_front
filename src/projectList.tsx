@@ -19,8 +19,8 @@ type MessageData = {
 
 const ProjectList: React.FC = () => {
   const navigate = useNavigate();
-  const [showMessage, setShowMessage] = useState(false);
-  const [message, setMessage] = useState<MessageData | null>(null);
+  const [messages, setMessages] = useState<MessageData[]>([]);
+const [showMessage, setShowMessage] = useState(false);
   const [teams, setTeams] = useState<TeamData[]>([]);
 
   // 팀 목록 가져오기
@@ -61,12 +61,8 @@ const ProjectList: React.FC = () => {
         body: JSON.stringify({ uid: userEmail }),
       });
       const data: MessageData[] = await response.json();
-      if (data.length > 0) {
-        setMessage(data[0]);
-      } else {
-        setMessage(null);
-        setShowMessage(true); // "메시지 없음"도 모달로 표시
-      }
+      setMessages(data);
+      setShowMessage(true);
     } catch (e) {
       alert("메시지 불러오기에 실패했습니다.");
     }
@@ -75,8 +71,7 @@ const ProjectList: React.FC = () => {
   // 메시지 모달 닫기
   const handleCloseMessage = () => setShowMessage(false);
 
-  const handleChoice = async (choice: boolean) => {
-    if (!message) return;
+  const handleChoice = async (choice: boolean, message: MessageData) => {
     const userEmail = localStorage.getItem("userEmail");
     if (!userEmail) {
       alert("로그인이 필요합니다.");
@@ -95,7 +90,8 @@ const ProjectList: React.FC = () => {
       const result: boolean = await response.json();
       if (result === true) {
         alert(choice ? "팀 초대를 수락하였습니다." : "팀 초대를 거절하였습니다.");
-        setShowMessage(false);
+        // 메시지 리스트에서 해당 메시지 제거
+        setMessages(msgs => msgs.filter(msg => msg !== message));
       } else {
         alert("처리에 실패했습니다.");
       }
@@ -130,33 +126,38 @@ const ProjectList: React.FC = () => {
               {showMessage && (
                 <MessageModal>
                   <CloseButton onClick={handleCloseMessage}>×</CloseButton>
-                  {message ? (
-                    <>
-                      <MessageText>
-                        {message.content === 1 ? (
-                          <>
-                            <b>{message.uid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
-                          </>
-                        ) : (
-                          <>
-                            <b>{message.uid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
-                          </>
-                      )}
-                  </MessageText>
-                  {message.content === 1 ? (
-                    <ModalButtonRow>
-                      <ModalButton accept onClick={() => handleChoice(true)}>
-                        수락하기
-                      </ModalButton>
-                      <ModalButton onClick={() => handleChoice(false)}>거절하기</ModalButton>
-                    </ModalButtonRow>
+                  {messages.length === 0 ? (
+                    <NoMessage>받은 메시지가 없습니다.</NoMessage>
                   ) : (
-                    <CloseButtonSmall onClick={handleCloseMessage}>×</CloseButtonSmall>
+                    messages.map((message, idx) => (
+                      <div key={idx} style={{ width: "100%" }}>
+                        <MessageText>
+                          {message.content === 1 ? (
+                            <>
+                              <b>{message.uid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
+                            </>
+                          ) : (
+                            <>
+                              <b>{message.uid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
+                            </>
+                          )}
+                        </MessageText>
+                        {message.content === 1 ? (
+                          <ModalButtonRow>
+                            <ModalButton accept onClick={() => handleChoice(true, message)}>
+                              수락하기
+                            </ModalButton>
+                            <ModalButton onClick={() => handleChoice(false, message)}>
+                              거절하기
+                            </ModalButton>
+                          </ModalButtonRow>
+                        ) : (
+                          <CloseButtonSmall onClick={handleCloseMessage}>×</CloseButtonSmall>
+                        )}
+                        {idx < messages.length - 1 && <hr style={{ margin: "18px 0" }} />}
+                      </div>
+                    ))
                   )}
-                </>
-              ) : (
-                <NoMessage>받은 메시지가 없습니다.</NoMessage>
-              )}
                 </MessageModal>
               )}
             </MailIconWrapper>

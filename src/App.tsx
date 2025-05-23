@@ -10,6 +10,7 @@ import Team from "./team";
 import ProjectList from "./projectList";
 import Advice from "./advice";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
@@ -62,39 +63,41 @@ const MainComponent: React.FC = () => {
 // 라우터가 포함된 앱 컴포넌트
 const App: React.FC = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<MainComponent />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Terms />} />
-        <Route path="/signup2" element={<NewMember />} />
-        <Route
-          path="/create"
-          element={
-            <ProtectedRoute>
-              <Create />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/team"
-          element={
-            <ProtectedRoute>
-              <Team />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projectList"
-          element={
-            <ProtectedRoute>
-              <ProjectList />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/advice" element={<Advice />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<MainComponent />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Terms />} />
+          <Route path="/signup2" element={<NewMember />} />
+          <Route
+            path="/create"
+            element={
+              <ProtectedRoute>
+                <Create />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team"
+            element={
+              <ProtectedRoute>
+                <Team />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projectList"
+            element={
+              <ProtectedRoute>
+                <ProjectList />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/advice" element={<Advice />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 

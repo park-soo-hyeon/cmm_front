@@ -1,16 +1,11 @@
 import React from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem("userEmail");
-
-  const handleLogout = () => {
-    localStorage.removeItem("userEmail");
-    navigate("/");
-    window.location.reload();
-  };
+  const { isLoggedIn, logout } = useAuth();
 
   return (
     <HeaderContainer>
@@ -24,7 +19,7 @@ const Header: React.FC = () => {
         {isLoggedIn ? (
           <>
             <LinkItem onClick={() => navigate("/mypage")}>마이페이지</LinkItem> /
-            <LinkItem onClick={handleLogout}>로그아웃</LinkItem>
+            <LinkItem onClick={() => { logout(); navigate("/"); }}>로그아웃</LinkItem>
           </>
         ) : (
           <>
