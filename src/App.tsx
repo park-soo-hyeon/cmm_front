@@ -11,6 +11,8 @@ import ProjectList from "./projectList";
 import Advice from "./advice";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
+import Mypage from "./mypage";
+import LoginHandeler from "./login/loginHandeler";
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
@@ -38,6 +40,10 @@ const MainComponent: React.FC = () => {
 
   const handleAdviceClick = () => {
     navigate("/advice");
+  }
+
+  const handleMypageClick = () => {
+    navigate("/mypage");
   }
 
   return (
@@ -68,6 +74,10 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<MainComponent />} />
           <Route path="/login" element={<Login />} />
+          <Route
+            path="/kakao/callback" //redirect_url
+            element={<LoginHandeler />} //당신이 redirect_url에 맞춰 꾸밀 컴포넌트
+          />
           <Route path="/signup" element={<Terms />} />
           <Route path="/signup2" element={<NewMember />} />
           <Route
@@ -95,6 +105,7 @@ const App: React.FC = () => {
             }
           />
           <Route path="/advice" element={<Advice />} />
+          <Route path="/mypage" element={<Mypage />} />
         </Routes>
       </Router>
     </AuthProvider>

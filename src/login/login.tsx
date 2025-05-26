@@ -3,6 +3,8 @@ import styled from "styled-components";
 import Header from "../header";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import LoginHandeler from "./loginHandeler";
+import { KAKAO_AUTH_URL } from "./outh";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -74,6 +76,9 @@ const Login: React.FC = () => {
           <Button type="submit" disabled={loading}>
             {loading ? "로그인 중..." : "로그인"}
           </Button>
+          <a href={KAKAO_AUTH_URL} className="kakaobtn">
+            <img src={process.env.PUBLIC_URL + `image/kakao.png`} />
+          </a>
         </Form>
 
         <HelpLinks>
