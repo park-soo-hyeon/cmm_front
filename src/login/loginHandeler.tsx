@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext"; // 로그인 상태 관리용 (선택)
 
 
@@ -7,8 +7,11 @@ const LoginHandeler = () => {
   const navigate = useNavigate();
   const { login } = useAuth(); // 로그인 상태 관리 (선택)
   const code = new URL(window.location.href).searchParams.get("code");
+  const [loginDone, setLoginDone] = useState(false);
 
   useEffect(() => {
+    if (!code || loginDone) return;
+
     const kakaoLogin = async () => {
       try {
         const response = await fetch(
@@ -45,6 +48,8 @@ const LoginHandeler = () => {
 
         // (선택) 전역 로그인 상태 관리가 있다면 아래도 호출
         if (login) login(userId);
+
+        setLoginDone(true); // 중복 호출 방지
 
         navigate("/");
       } catch (error) {
