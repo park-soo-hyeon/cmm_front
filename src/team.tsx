@@ -3,6 +3,8 @@ import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import Draggable from 'react-draggable';
 import { io, Socket } from "socket.io-client";
+import CursorTracker from './components/CursorTracker';
+
 
 type TextBox = { 
   x: number; 
@@ -473,6 +475,7 @@ const Team: React.FC = () => {
           <FloatingButton>+</FloatingButton>
         </MainArea>
       </Content>
+      {/*<CursorTracker teamId={teamId} userId={userId} projectId={projectId} />*/}
     </Container>
   );
 };
