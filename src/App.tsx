@@ -119,8 +119,10 @@ const Container = styled.div`
   background-color: #f6f0ff;
   color: #333;
   min-height: 100vh;
+  height: 100vh;              /* 추가: 전체 뷰포트 높이로 고정 */
   display: flex;
   flex-direction: column;
+  overflow: hidden;           /* 추가: 스크롤 방지 */
 `;
 
 const Main = styled.main`
@@ -129,10 +131,14 @@ const Main = styled.main`
   padding: 40px;
   justify-content: space-between;
   align-items: center;
+  min-height: 0;              /* flexbox overflow 방지 */
+  overflow: hidden;           /* 추가: 스크롤 방지 */
 `;
 
 const TextSection = styled.div`
   max-width: 50%;
+  min-width: 0;               /* flexbox overflow 방지 */
+  overflow: hidden;           /* 추가: 스크롤 방지 */
 `;
 
 const Title = styled.h2`
@@ -160,6 +166,8 @@ const ActionLink = styled.a`
 
 const ImageSection = styled.div`
   max-width: 50%;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const Image = styled.img`
@@ -167,4 +175,7 @@ const Image = styled.img`
   max-width: 600px;
   height: auto;
   border-radius: 20px;
+  display: block;
+  object-fit: contain;        /* 이미지가 영역을 넘지 않게 */
+  max-height: 70vh;           /* 이미지가 너무 커지지 않게 제한 */
 `;

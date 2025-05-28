@@ -20,14 +20,13 @@ type MessageData = {
 const ProjectList: React.FC = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<MessageData[]>([]);
-const [showMessage, setShowMessage] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
   const [teams, setTeams] = useState<TeamData[]>([]);
+  const userEmail = localStorage.getItem("userEmail");
 
   // 팀 목록 가져오기
   useEffect(() => {
     const fetchTeams = async () => {
-      const userEmail = localStorage.getItem("userEmail");
-
       try {
         const response = await fetch(`${API_URL}/api/teams/list`, {
           method: "POST",
@@ -51,8 +50,6 @@ const [showMessage, setShowMessage] = useState(false);
 
   // 메시지 모달 열기
   const handleMailClick = async () => {
-    // 현재 로그인한 회원 이메일(예시: localStorage)
-    const userEmail = localStorage.getItem("userEmail");
     // 서버에 메시지 요청
     try {
       const response = await fetch(`${API_URL}/api/users/message`, {
@@ -109,7 +106,13 @@ const [showMessage, setShowMessage] = useState(false);
       </HeaderBar>
       <Body>
         <Sidebar>
-          <SidebarTitle>○○○님의 프로젝트</SidebarTitle>
+          <SidebarTitle>
+            {userEmail ? (
+              <>{userEmail}님의 프로젝트</>
+            ) : (
+              <>○○○님의 프로젝트</>
+            )}
+          </SidebarTitle>
           <SidebarList>
             {teams.length === 0 ? (
               <SidebarEmpty>팀이 없습니다.</SidebarEmpty>
@@ -164,19 +167,17 @@ const [showMessage, setShowMessage] = useState(false);
           </SidebarFooter>
         </Sidebar>
         <MainArea>
-         <ProjectGrid>
-            {teams.length === 0 ? (
-              <ProjectCard>
-                <ProjectCardLabel>생성된 팀이 없습니다.</ProjectCardLabel>
-              </ProjectCard>
-            ) : (
-              teams.map((team, i) => (
+          {teams.length === 0 ? (
+            <NoTeamsText>생성된 팀이 없습니다.</NoTeamsText>
+          ) : (
+            <ProjectGrid>
+              {teams.map((team, i) => (
                 <ProjectCard key={i}>
                   <ProjectCardLabel>{team.tname}</ProjectCardLabel>
                 </ProjectCard>
-              ))
-            )}
-          </ProjectGrid>
+              ))}
+            </ProjectGrid>
+          )}
         </MainArea>
       </Body>
     </Container>
@@ -190,26 +191,26 @@ export default ProjectList;
 const Container = styled.div`
   font-family: Arial, sans-serif;
   background-color: #f6f0ff;
-  min-height: 100vh;
-  width: 100vw;
   color: #333;
+  min-height: 100vh;
+  height: 100vh;        /* 추가: 뷰포트에 맞춤 */
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;     /* 추가: 스크롤 방지 */
 `;
 
 const HeaderBar = styled.header`
-  height: 64px;
-  background: #ede6fa;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 36px 0 32px;
-  border-bottom: 1px solid #e0d6f8;
+  align-items: center;
+  padding: 20px;
+  background-color: #e9dfff;
 `;
 
-const Logo = styled.span`
-  font-size: 2rem;
+const Logo = styled.h1`
+  font-size: 24px;
   font-weight: bold;
-  font-style: italic;
-  color: #444;
   cursor: pointer;
 `;
 
@@ -238,16 +239,25 @@ const CreateButton = styled.button`
 
 const Body = styled.div`
   display: flex;
-  height: calc(100vh - 64px);
+  flex: 1 1 0;
+  height: 100%;
+  gap: 32px;
+  align-items: stretch; /* 추가: 사이드바와 메인 높이 맞춤 */
+  overflow: hidden;
 `;
 
 const Sidebar = styled.aside`
   width: 320px;
+  min-width: 180px;
+  max-width: 100vw;
   background: #e6e0fa;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 32px 0 0 0;
+  transition: width 0.2s;
+  /* height: 100%;  // 이 줄은 제거 */
+  /* overflow-y: auto; // 이 줄도 제거 */
 `;
 
 const SidebarTitle = styled.div`
@@ -261,7 +271,9 @@ const SidebarList = styled.ul`
   list-style: none;
   padding: 0 0 0 36px;
   margin: 0;
-  flex: 1;
+  flex: 1 1 auto;    /* 남는 공간을 정확히 차지 */
+  min-height: 0;     /* flexbox overflow 방지 */
+  overflow-y: auto;  /* 리스트가 길 때만 스크롤 */
 `;
 
 const SidebarItem = styled.li`
@@ -302,7 +314,7 @@ const MailIcon = (props: React.HTMLProps<HTMLSpanElement>) => (
 const MessageModal = styled.div`
   position: absolute;
   left: 30px;
-  top: -10px;
+  top: -80px; /* 기존 -10px에서 더 위로 */
   min-width: 280px;
   background: #fff;
   border-radius: 18px;
@@ -313,6 +325,7 @@ const MessageModal = styled.div`
   flex-direction: column;
   align-items: flex-start;
 `;
+
 
 const CloseButton = styled.button`
   position: absolute;
@@ -376,12 +389,16 @@ const NoMessage = styled.div`
 `;
 
 const MainArea = styled.main`
-  flex: 1;
+  flex: 1 1 0;
   background: #f6f0ff;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: flex-start;
-  padding: 46px 0 0 0;
+  padding: 24px 0 0 0;
+  min-width: 0;
+  min-height: 0;   /* flexbox overflow 방지 */
+  overflow: auto;
 `;
 
 const ProjectGrid = styled.div`
@@ -389,6 +406,9 @@ const ProjectGrid = styled.div`
   grid-template-columns: repeat(3, 320px);
   grid-template-rows: repeat(2, 160px);
   gap: 48px 36px;
+  width: 100%;
+  /* max-height: 100%;  // 이 줄 제거 */
+  /* overflow-y: auto;  // 이 줄 제거 */
 `;
 
 const ProjectCard = styled.div`
@@ -409,6 +429,14 @@ const ProjectCardLabel = styled.div`
   font-size: 1.1rem;
   font-weight: 400;
   color: #333;
+`;
+
+const NoTeamsText = styled.div`
+  color: #bbb;
+  font-size: 1.15rem;
+  padding: 60px 0 0 0;
+  text-align: center;
+  width: 100%;
 `;
 
 const SidebarEmpty = styled.div`
