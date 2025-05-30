@@ -6,12 +6,17 @@ import Header from "./header"; // header.tsx 파일 import
 import Terms from "./login/terms";
 import NewMember from "./login/newMember";
 import Create from "./create";
-import Team from "./team";
+import Team from "./teams/team";
 import ProjectList from "./projectList";
 import Advice from "./advice";
 
+
+
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
+
+  
+  
   const navigate = useNavigate();
 
   const handleLoginClick = () => {
