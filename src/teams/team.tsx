@@ -53,7 +53,7 @@
     'Gungseo',
   ];
 
-  const SOCKET_URL = "http://3.89.250.244:3000";
+  const SOCKET_URL = "http://3.220.156.58:3000";
 
   const Team: React.FC = () => {
     const navigate = useNavigate();
