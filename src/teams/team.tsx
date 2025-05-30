@@ -53,7 +53,7 @@
     'Gungseo',
   ];
 
-  const SOCKET_URL = "http://18.207.248.132:3000";
+  const SOCKET_URL = "http://3.89.250.244:3000";
 
   const Team: React.FC = () => {
     const navigate = useNavigate();
@@ -198,6 +198,7 @@ useEffect(() => {
         setTextBoxes(data.texts || []);
         setVoteBoxes(data.votes || []);
         console.log("Init event images:", data.images);
+        console.log("Init event vote:", data.votes);
         setImageBoxes(
           (data.images || []).map((img:any) => ({
             ...img,
