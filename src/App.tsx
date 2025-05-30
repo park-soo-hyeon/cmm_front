@@ -6,7 +6,7 @@ import Header from "./header"; // header.tsx 파일 import
 import Terms from "./login/terms";
 import NewMember from "./login/newMember";
 import Create from "./create";
-import Team from "./team";
+import Team from "./teams/team";
 import ProjectList from "./projectList";
 import Advice from "./advice";
 import ProtectedRoute from "./components/ProtectedRoute";

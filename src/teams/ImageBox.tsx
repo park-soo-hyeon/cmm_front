@@ -211,7 +211,7 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
           }}
         >
           <img
-            src={`http://3.89.250.244:3000/api/image/${img.node}/${img.pId}/${img.tId}`}
+            src={`http://3.220.156.58:3000/api/image/${img.node}/${img.pId}/${img.tId}`}
             alt=""
             style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
             draggable={false}

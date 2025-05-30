@@ -6,6 +6,7 @@
   import TextBoxes from "./textBox";
   import VoteBoxes from "./voteBox";
   import ImageBoxes from "./ImageBox";
+  import CursorTracker from "../components/CursorTracker";
 
 
   const vCursorUrl = `data:image/svg+xml;utf8,<svg width='32' height='32' xmlns='http://www.w3.org/2000/svg'><circle cx='16' cy='16' r='15' fill='white' stroke='%236b5b95' stroke-width='2'/><text x='16' y='23' text-anchor='middle' font-size='20' fill='%236b5b95' font-family='Arial' font-weight='bold'>V</text></svg>`;
@@ -53,7 +54,7 @@
     'Gungseo',
   ];
 
-  const SOCKET_URL = "http://3.89.250.244:3000";
+  const SOCKET_URL = "http://3.220.156.58:3000";
 
   const Team: React.FC = () => {
     const navigate = useNavigate();
@@ -464,6 +465,7 @@ useEffect(() => {
     return (
       <Container>
         <Content>
+          {/*<CursorTracker teamId={teamId} userId={userId} projectId={projectId} />*/}
           <Sidebar>
             <Logo onClick={() => navigate("/")}>BlankSync</Logo>
             <SidebarTitle>
