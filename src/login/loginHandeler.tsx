@@ -44,8 +44,8 @@ const LoginHandeler = () => {
         }
         // id(유저 이메일) 저장
         localStorage.setItem("userEmail", userId);
-
-        // (선택) 전역 로그인 상태 관리가 있다면 아래도 호출
+        const expiresAt = Date.now() + 60 * 60 * 1000; // 1시간 뒤
+        localStorage.setItem("expiresAt", expiresAt.toString());
         if (login) login(userId);
 
         setLoginDone(true); // 중복 호출 방지

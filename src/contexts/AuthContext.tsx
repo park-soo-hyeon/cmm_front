@@ -13,6 +13,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userEmail, setUserEmail] = useState<string | null>(localStorage.getItem("userEmail"));
 
   useEffect(() => {
+    // 만료시간 체크
+    const expiresAt = localStorage.getItem("expiresAt");
+    if (!expiresAt || Date.now() > Number(expiresAt)) {
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("expiresAt");
+      setUserEmail(null);
+    }
+
     // localStorage 변경 감지 (다른 탭에서 로그아웃 등)
     const onStorage = () => setUserEmail(localStorage.getItem("userEmail"));
     window.addEventListener("storage", onStorage);
@@ -20,17 +28,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (email: string) => {
+    const expiresAt = Date.now() + 60 * 60 * 1000; // 1시간 뒤
     localStorage.setItem("userEmail", email);
+    localStorage.setItem("expiresAt", expiresAt.toString());
     setUserEmail(email);
   };
 
   const logout = () => {
     localStorage.removeItem("userEmail");
+    localStorage.removeItem("expiresAt");
     setUserEmail(null);
   };
 
+  const expiresAt = localStorage.getItem("expiresAt");
+  const isLoggedIn = !!userEmail && !!expiresAt && Date.now() < Number(expiresAt);
+
   return (
-    <AuthContext.Provider value={{ isLoggedIn: !!userEmail, login, logout, userEmail }}>
+    <AuthContext.Provider value={{ isLoggedIn, login, logout, userEmail }}>
       {children}
     </AuthContext.Provider>
   );

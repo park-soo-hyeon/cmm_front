@@ -41,6 +41,11 @@ const Login: React.FC = () => {
         console.log("3");
         alert("로그인 성공!");
         login(uid);
+
+        const expiresAt = Date.now() + 60 * 60 * 1000; // 1시간 뒤
+        localStorage.setItem("userEmail", uid);
+        localStorage.setItem("expiresAt", expiresAt.toString());
+        login(uid);
         navigate("/");
       } else {
         alert("아이디 또는 비밀번호가 올바르지 않습니다.");

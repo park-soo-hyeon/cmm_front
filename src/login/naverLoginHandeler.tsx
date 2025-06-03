@@ -52,6 +52,8 @@ const NaverLoginHandeler = () => {
           }
         }
         localStorage.setItem("userEmail", userId);
+        const expiresAt = Date.now() + 60 * 60 * 1000; // 1시간 뒤
+        localStorage.setItem("expiresAt", expiresAt.toString());
         if (login) login(userId);
 
         setLoginDone(true);
