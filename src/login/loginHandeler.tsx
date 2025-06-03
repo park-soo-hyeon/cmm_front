@@ -20,7 +20,6 @@ const LoginHandeler = () => {
             method: "GET",
             headers: {
               "Content-Type": "application/json;charset=utf-8",
-              // "Access-Control-Allow-Origin": "*" // 이 헤더는 프론트엔드에서 넣을 필요 없음!
             },
           }
         );

@@ -172,7 +172,18 @@ const ProjectList: React.FC = () => {
           ) : (
             <ProjectGrid>
               {teams.map((team, i) => (
-                <ProjectCard key={i}>
+                <ProjectCard
+                  key={i}
+                  onClick={() =>
+                    navigate("/team", {
+                      state: {
+                        userId: userEmail,
+                        teamId: team.tid,
+                      },
+                    })
+                  }
+                  style={{ cursor: "pointer" }}
+                >
                   <ProjectCardLabel>{team.tname}</ProjectCardLabel>
                 </ProjectCard>
               ))}

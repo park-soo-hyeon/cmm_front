@@ -15,6 +15,16 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
+  const NAVER_CLIENT_ID = "YqfWThdztNwv006mYBBW";
+  const NAVER_REDIRECT_URI = "http://localhost:80/naver/callback";
+  const NAVER_STATE = "random_state_string"; // CSRF 방지용 임의 문자열
+
+  const NAVER_AUTH_URL =
+    `https://nid.naver.com/oauth2.0/authorize?response_type=code` +
+    `&client_id=${NAVER_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(NAVER_REDIRECT_URI)}` +
+    `&state=${NAVER_STATE}`;
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -79,6 +89,9 @@ const Login: React.FC = () => {
           <a href={KAKAO_AUTH_URL} className="kakaobtn">
             <img src={process.env.PUBLIC_URL + `image/kakao.png`} />
           </a>
+          <a href={NAVER_AUTH_URL} className="naverbtn">
+          <img src={process.env.PUBLIC_URL + `/image/naver.png`} alt="네이버 로그인" width={48} />
+        </a>
         </Form>
 
         <HelpLinks>

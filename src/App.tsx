@@ -13,6 +13,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import Mypage from "./mypage";
 import LoginHandeler from "./login/loginHandeler";
+import NaverLoginHandeler from "./login/naverLoginHandeler";
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
@@ -78,6 +79,7 @@ const App: React.FC = () => {
             path="/kakao/callback" //redirect_url
             element={<LoginHandeler />} //당신이 redirect_url에 맞춰 꾸밀 컴포넌트
           />
+          <Route path="/naver/callback" element={<NaverLoginHandeler />} />
           <Route path="/signup" element={<Terms />} />
           <Route path="/signup2" element={<NewMember />} />
           <Route
