@@ -66,7 +66,7 @@ const NaverLoginHandeler = () => {
     };
 
     naverLogin();
-  }, [navigate, login, loginDone]);
+  }, [navigate, loginDone]);
 
   return (
     <div className="loginHandeler">

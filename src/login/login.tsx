@@ -91,12 +91,15 @@ const Login: React.FC = () => {
           <Button type="submit" disabled={loading}>
             {loading ? "로그인 중..." : "로그인"}
           </Button>
-          <a href={KAKAO_AUTH_URL} className="kakaobtn">
-            <img src={process.env.PUBLIC_URL + `image/kakao.png`} />
-          </a>
-          <a href={NAVER_AUTH_URL} className="naverbtn">
-          <img src={process.env.PUBLIC_URL + `/image/naver.png`} alt="네이버 로그인" width={48} />
-        </a>
+          <SocialLoginRow>
+            <SocialIconButton href={KAKAO_AUTH_URL}>
+              <img src={process.env.PUBLIC_URL + `/image/kakao.png`} alt="카카오 로그인" />
+            </SocialIconButton>
+            <SocialIconButton href={NAVER_AUTH_URL}>
+              <img src={process.env.PUBLIC_URL + `/image/naver.png`} alt="네이버 로그인" />
+            </SocialIconButton>
+          </SocialLoginRow>
+
         </Form>
 
         <HelpLinks>
@@ -194,3 +197,35 @@ const HelpLinks = styled.div`
 const HelpLink = styled.a`
   margin-right: 10px; /* 링크 간격 추가 */
 `;
+
+const SocialLoginRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+  margin-bottom: 10px;
+`;
+
+const SocialIconButton = styled.a`
+  display: inline-block;
+  /* 배경, border, border-radius 등 모두 제거 */
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  img {
+    width: 100px;
+    height: 50px;
+    border-radius: 0;   
+    box-shadow: none;     
+    background: none;
+    margin: 0;
+    padding: 0;
+    display: block;
+  }
+`;
+
