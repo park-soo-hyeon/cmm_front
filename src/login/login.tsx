@@ -15,6 +15,16 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
+  const NAVER_CLIENT_ID = "YqfWThdztNwv006mYBBW";
+  const NAVER_REDIRECT_URI = "http://localhost:80/naver/callback";
+  const NAVER_STATE = "random_state_string"; // CSRF 방지용 임의 문자열
+
+  const NAVER_AUTH_URL =
+    `https://nid.naver.com/oauth2.0/authorize?response_type=code` +
+    `&client_id=${NAVER_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(NAVER_REDIRECT_URI)}` +
+    `&state=${NAVER_STATE}`;
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -31,6 +41,11 @@ const Login: React.FC = () => {
         console.log("3");
         alert("로그인 성공!");
         login(uid);
+
+        const expiresAt = Date.now() + 60 * 60 * 1000; // 1시간 뒤
+        localStorage.setItem("userEmail", uid);
+        localStorage.setItem("expiresAt", expiresAt.toString());
+        login(uid);
         navigate("/");
       } else {
         alert("아이디 또는 비밀번호가 올바르지 않습니다.");
@@ -45,17 +60,15 @@ const Login: React.FC = () => {
   return (
     <Container>
       <Header />
-
       <Main>
-        <Title>BlankSync</Title>
-        <Subtitle>새로운 협업툴에 도전해보세요!</Subtitle>
-        <InfoText>
-          이용이 처음이신가요?{" "}
-          <SignUpLink onClick={() => navigate("/signup")}>회원가입하러 가기</SignUpLink>
-        </InfoText>
-
-        <Form onSubmit={handleLogin}>
-          <InputWrapper>
+        <LoginCard>
+          <Title>BlankSync</Title>
+          <Subtitle>새로운 협업툴에 도전해보세요!</Subtitle>
+          <InfoText>
+            처음이신가요?
+            <SignUpLink onClick={() => navigate("/signup")}>회원가입</SignUpLink>
+          </InfoText>
+          <Form onSubmit={handleLogin}>
             <Input
               type="text"
               placeholder="아이디"
@@ -63,8 +76,6 @@ const Login: React.FC = () => {
               onChange={(e) => setUid(e.target.value)}
               required
             />
-          </InputWrapper>
-          <InputWrapper>
             <Input
               type="password"
               placeholder="비밀번호"
@@ -72,107 +83,214 @@ const Login: React.FC = () => {
               onChange={(e) => setUpassword(e.target.value)}
               required
             />
-          </InputWrapper>
-          <Button type="submit" disabled={loading}>
-            {loading ? "로그인 중..." : "로그인"}
-          </Button>
-          <a href={KAKAO_AUTH_URL} className="kakaobtn">
-            <img src={process.env.PUBLIC_URL + `image/kakao.png`} />
-          </a>
-        </Form>
+            <Button type="submit" disabled={loading}>
+              {loading ? "로그인 중..." : "로그인"}
+            </Button>
 
-        <HelpLinks>
-          <HelpLink href="#">아이디 찾기</HelpLink>
-          <HelpLink href="#">비밀번호 찾기</HelpLink>
-        </HelpLinks>
+            <Divider>또는</Divider>
+
+            <SocialLoginRow>
+              <SocialIconButton href={KAKAO_AUTH_URL} aria-label="카카오 로그인">
+                <img src={process.env.PUBLIC_URL + `/image/kakao.png`} alt="카카오 로그인" />
+              </SocialIconButton>
+              <SocialIconButton href={NAVER_AUTH_URL} aria-label="네이버 로그인">
+                <img src={process.env.PUBLIC_URL + `/image/naver.png`} alt="네이버 로그인" />
+              </SocialIconButton>
+            </SocialLoginRow>
+          </Form>
+          <HelpLinks>
+            <HelpLink href="#">아이디 찾기</HelpLink>
+            <HelpLink href="#">비밀번호 찾기</HelpLink>
+          </HelpLinks>
+        </LoginCard>
       </Main>
     </Container>
   );
+
 };
 
 export default Login;
 
-// Styled Components
+const COLOR = {
+  bg: "#EDE9F2",        // 전체 배경
+  card: "#F2F2F2",      // 카드/박스 배경
+  accent: "#B8B6F2",    // 주요 버튼/포인트
+  accentDark: "#545159",// 버튼 hover 등
+  text: "#3B3740",      // 기본 텍스트
+  subText: "#A19FA6",   // 서브 텍스트
+  logo: "#C6C4F2",      // 로고/포인트
+  imgBg: "#D1D0F2",     // 이미지 영역 배경
+  imgShadow: "#CEDEF2", // 이미지 그림자
+  border: "#E3DCF2",    // 경계선/구분선
+};
+
 const Container = styled.div`
-  font-family: Arial, sans-serif;
-  background-color: #f6f0ff;
-  color: #333;
-  height: 100vh;
+  min-height: 100vh;
+  background: ${COLOR.bg};
   display: flex;
   flex-direction: column;
 `;
 
 const Main = styled.main`
-  flex-grow: 1;
+  flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
 `;
 
+const LoginCard = styled.div`
+  background: ${COLOR.card};
+  border-radius: 18px;
+  box-shadow: 0 6px 32px ${COLOR.imgShadow};
+  padding: 48px 36px 36px 36px;
+  min-width: 340px;
+  max-width: 380px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1.5px solid ${COLOR.border};
+`;
+
 const Title = styled.h2`
-  font-size: 36px;
-  font-weight: bold;
+  font-size: 32px;
+  font-weight: 800;
+  color: ${COLOR.text};
+  margin-bottom: 8px;
 `;
 
 const Subtitle = styled.p`
-  font-size: 18px;
+  font-size: 16px;
+  color: ${COLOR.subText};
+  margin-bottom: 30px;
 `;
 
 const InfoText = styled.p`
-  margin-top: -10px;
+  font-size: 14px;
+  color: ${COLOR.subText};
+  margin-bottom: 18px;
 `;
 
-const InputWrapper = styled.div`
-  display: flex;
-  width: 100%;
-  position: relative;
-`;
-
-const SignUpLink = styled.a`
-  color: #6b5b95;
+const SignUpLink = styled.span`
+  color: ${COLOR.accent};
   cursor: pointer;
+  font-weight: 600;
+  margin-left: 4px;
+  &:hover {
+    text-decoration: underline;
+    color: ${COLOR.accentDark};
+  }
 `;
 
 const Form = styled.form`
   width: 100%;
-  max-width: 450px;
+  max-width: 320px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  align-items: center;
+  gap: 18px;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 15px;
-  border-radius: 50px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.7);
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid ${COLOR.border};
+  background: #fff;
   font-size: 16px;
+  color: ${COLOR.text};
   outline: none;
+  transition: border 0.18s;
+  &:focus {
+    border: 1.5px solid ${COLOR.accent};
+  }
 `;
 
 const Button = styled.button`
   width: 100%;
-  padding: 15px;
-  border-radius: 50px;
+  padding: 14px;
+  border-radius: 10px;
   border: none;
-  background-color: #a78bfa;
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
+  background-color: ${COLOR.accent};
+  color: ${COLOR.text};
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 15px;
+  margin-top: 8px;
+  transition: background 0.18s, color 0.18s;
   &:hover {
-    background-color: #9061f9;
+    background-color: ${COLOR.accentDark};
+    color: ${COLOR.card};
   }
 `;
 
-// HelpLinks 스타일 정의
+const Divider = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 18px 0 8px 0;
+  color: ${COLOR.subText};
+  font-size: 14px;
+  font-weight: 500;
+  &::before, &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: ${COLOR.border};
+    margin: 0 8px;
+  }
+`;
+
+const SocialLoginRow = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 8px 0;
+`;
+
+const SocialIconButton = styled.a`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0; /* 여백 제거 */
+  border: none;
+  background: none;
+  box-shadow: none;
+
+  img {
+    width: 140px;      /* 공식 버튼 이미지 크기 */
+    height: 40px;
+    border-radius: 7px;
+    margin: 0;
+    padding: 0;
+    display: block;
+    border: none;
+    object-fit: cover;
+    background: none;
+  }
+`;
+
 const HelpLinks = styled.div`
-  margin-top: 20px; /* 상단 여백 추가 */
+  margin-top: 10px;
+  font-size: 13px;
+  color: ${COLOR.subText};
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 `;
 
 const HelpLink = styled.a`
-  margin-right: 10px; /* 링크 간격 추가 */
+  color: ${COLOR.accentDark};
+  cursor: pointer;
+  &:hover {
+    color: ${COLOR.accent};
+    text-decoration: underline;
+  }
 `;
+
+

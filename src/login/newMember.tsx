@@ -4,8 +4,6 @@ import Header from "../header";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
-
-// 파일 상단에 추가
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const NewMember: React.FC = () => {
@@ -30,19 +28,16 @@ const NewMember: React.FC = () => {
     try {
       const response = await fetch(`${API_URL}/api/users/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           uid: email,
           uname: name,
           upassword: password
         })
       });
-      const result = await response.json(); // true or false가 반환된다고 가정
+      const result = await response.json();
       if (result === true) {
         alert("회원가입이 완료되었습니다!");
-        // 회원가입 성공 후 이동할 페이지가 있다면 여기에 추가
         navigate("/login");
       } else {
         alert("회원가입에 실패했습니다. 이미 등록된 이메일일 수 있습니다.");
@@ -55,23 +50,18 @@ const NewMember: React.FC = () => {
   };
 
   const checkDuplicate = async () => {
-    // 이메일 형식 검증
     if (!EMAIL_REGEX.test(email)) {
       alert("이메일 형식이 올바르지 않습니다.");
       return;
     }
-  
     setLoading(true);
     try {
       const queryParams = new URLSearchParams({ id: email }).toString();
       const response = await fetch(`${API_URL}/api/users/check-id?${queryParams}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" }
       });
-      
-      const result = await response.json(); // 서버에서 boolean 반환
+      const result = await response.json();
       if (result === false) {
         alert("사용 가능한 이메일입니다.");
       } else {
@@ -83,73 +73,60 @@ const NewMember: React.FC = () => {
       setLoading(false);
     }
   };
-  
-  // 중복 확인 버튼에 loading 상태 추가
-  <DuplicateCheckButton 
-    type="button" 
-    onClick={checkDuplicate}
-    disabled={loading}
-  >
-    {loading ? "확인 중..." : "중복확인"}
-  </DuplicateCheckButton>
 
   return (
     <Container>
       <Header />
-
       <Main>
-        <Title>BlankSync</Title>
-        <SubTitle>회원가입하기</SubTitle>
-
-        <Form onSubmit={handleSubmit}>
-          <InputWrapper>
-            <Input 
-              type="text" 
-              placeholder="이름" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </InputWrapper>
-
-          <InputWrapper>
-            <Input 
-              type="email" 
-              placeholder="아이디(메일주소)" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <DuplicateCheckButton type="button" onClick={checkDuplicate}>
-              중복확인
-            </DuplicateCheckButton>
-          </InputWrapper>
-
-          <InputWrapper>
-            <Input 
-              type="password" 
-              placeholder="비밀번호" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              ref={passwordRef}
-              required
-            />
-          </InputWrapper>
-
-          <InputWrapper>
-            <Input 
-              type="password" 
-              placeholder="비밀번호 확인" 
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </InputWrapper>
-
-          <SignUpButton type="submit" disabled={loading}>
-            {loading ? "회원가입 중..." : "회원가입"}
-          </SignUpButton>
-        </Form>
+        <SignUpCard>
+          <Title>회원가입</Title>
+          <Subtitle>BlankSync에 오신 것을 환영합니다!</Subtitle>
+          <Form onSubmit={handleSubmit}>
+            <InputWrapper>
+              <Input 
+                type="text" 
+                placeholder="이름" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </InputWrapper>
+            <InputWrapper>
+              <Input 
+                type="email" 
+                placeholder="아이디(이메일)" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <DuplicateCheckButton type="button" onClick={checkDuplicate} disabled={loading}>
+                {loading ? "확인 중..." : "중복확인"}
+              </DuplicateCheckButton>
+            </InputWrapper>
+            <InputWrapper>
+              <Input 
+                type="password" 
+                placeholder="비밀번호" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                ref={passwordRef}
+                required
+              />
+            </InputWrapper>
+            <InputWrapper>
+              <Input 
+                type="password" 
+                placeholder="비밀번호 확인" 
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </InputWrapper>
+            <SignUpButton type="submit" disabled={loading}>
+              {loading ? "회원가입 중..." : "회원가입"}
+            </SignUpButton>
+          </Form>
+        </SignUpCard>
       </Main>
     </Container>
   );
@@ -157,89 +134,137 @@ const NewMember: React.FC = () => {
 
 export default NewMember;
 
+const COLOR = {
+  bg: "#EDE9F2",        // 전체 배경
+  card: "#F2F2F2",      // 카드/박스 배경
+  accent: "#B8B6F2",    // 주요 버튼/포인트
+  accentDark: "#545159",// 버튼 hover 등
+  text: "#3B3740",      // 기본 텍스트
+  subText: "#A19FA6",   // 서브 텍스트
+  logo: "#C6C4F2",      // 로고/포인트
+  imgBg: "#D1D0F2",     // 이미지 영역 배경
+  imgShadow: "#CEDEF2", // 이미지 그림자
+  border: "#E3DCF2",    // 경계선/구분선
+};
+
 const Container = styled.div`
-  font-family: Arial, sans-serif;
-  background-color: #f6f0ff;
-  color: #333;
   min-height: 100vh;
+  background: ${COLOR.bg};
   display: flex;
   flex-direction: column;
 `;
 
 const Main = styled.main`
-  flex-grow: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const SignUpCard = styled.div`
+  background: ${COLOR.card};
+  border-radius: 18px;
+  box-shadow: 0 6px 32px ${COLOR.imgShadow};
+  padding: 44px 36px 36px 36px;
+  min-width: 340px;
+  max-width: 420px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
+  border: 1.5px solid ${COLOR.border};
 `;
 
 const Title = styled.h2`
-  font-size: 36px;
-  font-weight: bold;
-  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: 800;
+  color: ${COLOR.text};
+  margin-bottom: 7px;
 `;
 
-const SubTitle = styled.h3`
-  font-size: 24px;
-  margin-bottom: 30px;
+const Subtitle = styled.p`
+  font-size: 15px;
+  color: ${COLOR.subText};
+  margin-bottom: 22px;
+  text-align: center;
 `;
 
 const Form = styled.form`
   width: 100%;
-  max-width: 450px;
+  max-width: 320px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  align-items: center;
+  gap: 16px;
 `;
 
 const InputWrapper = styled.div`
-  display: flex;
   width: 100%;
   position: relative;
+  display: flex;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 15px;
-  border-radius: 50px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.7);
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid ${COLOR.border};
+  background: #fff;
   font-size: 16px;
+  color: ${COLOR.text};
   outline: none;
+  transition: border 0.18s;
+  &:focus {
+    border: 1.5px solid ${COLOR.accent};
+  }
 `;
 
 const DuplicateCheckButton = styled.button`
   position: absolute;
-  right: 5px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background-color: #a78bfa;
-  color: white;
+  background-color: ${COLOR.accent};
+  color: ${COLOR.text};
   border: none;
-  border-radius: 20px;
-  padding: 8px 12px;
+  border-radius: 8px;
+  padding: 7px 14px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.18s, color 0.18s;
+  &:hover {
+    background-color: ${COLOR.accentDark};
+    color: ${COLOR.card};
+  }
   &:disabled {
-    background-color: #ccc;
+    background-color: ${COLOR.imgBg};
+    color: ${COLOR.subText};
     cursor: not-allowed;
   }
 `;
 
 const SignUpButton = styled.button`
   width: 100%;
-  padding: 15px;
-  border-radius: 50px;
+  padding: 14px;
+  border-radius: 10px;
   border: none;
-  background-color: #a78bfa;
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
+  background-color: ${COLOR.accent};
+  color: ${COLOR.text};
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 15px;
+  margin-top: 8px;
+  transition: background 0.18s, color 0.18s;
   &:hover {
-    background-color: #9061f9;
+    background-color: ${COLOR.accentDark};
+    color: ${COLOR.card};
+  }
+  &:disabled {
+    background-color: ${COLOR.imgBg};
+    color: ${COLOR.subText};
+    cursor: not-allowed;
   }
 `;

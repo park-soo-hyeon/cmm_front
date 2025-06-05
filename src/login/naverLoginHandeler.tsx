@@ -1,34 +1,43 @@
-import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext"; // 로그인 상태 관리용 (선택)
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:80";
 
-const LoginHandeler = () => {
+const NaverLoginHandeler = () => {
   const navigate = useNavigate();
-  const { login } = useAuth(); // 로그인 상태 관리 (선택)
-  const code = new URL(window.location.href).searchParams.get("code");
+  const { login } = useAuth();
   const [loginDone, setLoginDone] = useState(false);
 
   useEffect(() => {
-    if (!code || loginDone) return;
+    if (loginDone) return;
 
-    const kakaoLogin = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+
+    if (!code || !state) {
+      alert("네이버 인증 코드가 없습니다.");
+      navigate("/login");
+      return;
+    }
+
+    const naverLogin = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_REDIRECT_URL}?code=${code}`,
+          `${API_URL}/naver/callback`,
           {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json;charset=utf-8",
-            },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code, state }),
           }
         );
         const contentType = response.headers.get("content-type");
         const text = await response.text();
 
         if (!response.ok) {
-          // 서버가 HTML 에러페이지를 반환할 수도 있으니 text로 에러 표시
-          alert("로그인 처리 중 오류가 발생했습니다.\n" + text);
+          alert("네이버 로그인 처리 중 오류가 발생했습니다.\n" + text);
+          navigate("/login");
           throw new Error(text);
         }
 
@@ -42,27 +51,27 @@ const LoginHandeler = () => {
             // 파싱 실패 시 그대로 text 사용
           }
         }
-        // id(유저 이메일) 저장
         localStorage.setItem("userEmail", userId);
         const expiresAt = Date.now() + 60 * 60 * 1000; // 1시간 뒤
         localStorage.setItem("expiresAt", expiresAt.toString());
         if (login) login(userId);
 
-        setLoginDone(true); // 중복 호출 방지
-
+        setLoginDone(true);
         navigate("/");
       } catch (error) {
-        alert("로그인 처리 중 오류가 발생했습니다.");
+        alert("네이버 로그인 처리 중 오류가 발생했습니다.");
+        navigate("/login");
         console.error(error);
       }
     };
-    kakaoLogin();
-  }, [navigate, code, loginDone]);
+
+    naverLogin();
+  }, [navigate, loginDone]);
 
   return (
     <div className="loginHandeler">
       <div className="notice">
-        <p>로그인 중입니다.</p>
+        <p>네이버 로그인 중입니다.</p>
         <p>잠시만 기다려주세요.</p>
         <div className="spinner"></div>
       </div>
@@ -70,4 +79,4 @@ const LoginHandeler = () => {
   );
 };
 
-export default LoginHandeler;
+export default NaverLoginHandeler;

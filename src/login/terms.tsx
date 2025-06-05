@@ -57,53 +57,49 @@ const Terms: React.FC = () => {
     <Container>
       <Header />
       <Main>
-        <ContentBox>
-          <Title>BlankSync 이용 약관</Title>
+        <TermsCard>
+          <Title>약관 동의</Title>
+          <Subtitle>서비스 이용을 위해 아래 약관에 동의해주세요.</Subtitle>
           <TermsList>
             <TermItem>
-              <input
+              <StyledCheckbox
                 type="checkbox"
                 checked={allChecked}
                 onChange={handleAllChecked}
                 id="all"
               />
-              <label htmlFor="all" style={{ marginLeft: 10 }}>
-                다음 모든 항목에 동의합니다.
-              </label>
+              <Label htmlFor="all"><strong>모두 동의합니다</strong></Label>
             </TermItem>
+            <Divider />
             <TermItem>
-              <input
+              <StyledCheckbox
                 type="checkbox"
                 checked={ageChecked}
                 onChange={handleAgeChecked}
                 id="age"
               />
-              <label htmlFor="age" style={{ marginLeft: 10 }}>
-                본인은 만 <strong>14세 이상</strong>입니다.
-              </label>
+              <Label htmlFor="age">본인은 만 <strong>14세 이상</strong>입니다.</Label>
             </TermItem>
             <TermItem>
-              <input
+              <StyledCheckbox
                 type="checkbox"
                 checked={termsChecked}
                 onChange={handleTermsChecked}
                 id="terms"
               />
-              <label htmlFor="terms" style={{ marginLeft: 10 }}>
-                이용 약관에 동의합니다.
-              </label>
+              <Label htmlFor="terms">이용 약관에 동의합니다.</Label>
             </TermItem>
             <TermItem>
-              <input
+              <StyledCheckbox
                 type="checkbox"
                 checked={privacyChecked}
                 onChange={handlePrivacyChecked}
                 id="privacy"
               />
-              <label htmlFor="privacy" style={{ marginLeft: 10 }}>
-                <span style={{ color: "#a21caf", fontWeight: 600 }}>(필수)</span>{" "}
-                개인정보의 수집 및 사용에 동의합니다. (<a href="#">더보기</a>)
-              </label>
+              <Label htmlFor="privacy">
+                <span style={{ color: COLOR.accentDark, fontWeight: 600 }}>(필수)</span>{" "}
+                개인정보의 수집 및 사용에 동의합니다. <MoreLink href="#">더보기</MoreLink>
+              </Label>
             </TermItem>
           </TermsList>
           <AgreeButton
@@ -112,7 +108,7 @@ const Terms: React.FC = () => {
           >
             동의 및 계속하기
           </AgreeButton>
-        </ContentBox>
+        </TermsCard>
       </Main>
     </Container>
   );
@@ -120,69 +116,129 @@ const Terms: React.FC = () => {
 
 export default Terms;
 
-// Styled Components (동일)
+const COLOR = {
+  bg: "#EDE9F2",        // 전체 배경
+  card: "#F2F2F2",      // 카드/박스 배경
+  accent: "#B8B6F2",    // 주요 버튼/포인트
+  accentDark: "#545159",// 버튼 hover 등
+  text: "#3B3740",      // 기본 텍스트
+  subText: "#A19FA6",   // 서브 텍스트
+  logo: "#C6C4F2",      // 로고/포인트
+  imgBg: "#D1D0F2",     // 이미지 영역 배경
+  imgShadow: "#CEDEF2", // 이미지 그림자
+  border: "#E3DCF2",    // 경계선/구분선
+};
+
 const Container = styled.div`
-  font-family: Arial, sans-serif;
-  background-color: #f6f0ff;
-  color: #333;
   min-height: 100vh;
+  background: ${COLOR.bg};
   display: flex;
   flex-direction: column;
 `;
 
 const Main = styled.main`
-  flex-grow: 1;
+  flex: 1;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
 `;
 
-const ContentBox = styled.div`
-  background-color: #e9dfff;
-  padding: 40px;
-  border-radius: 20px;
-  width: 80%;
-  max-width: 600px;
+const TermsCard = styled.div`
+  background: ${COLOR.card};
+  border-radius: 18px;
+  box-shadow: 0 6px 32px ${COLOR.imgShadow};
+  padding: 44px 36px 36px 36px;
+  min-width: 340px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1.5px solid ${COLOR.border};
 `;
 
 const Title = styled.h2`
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 28px;
+  font-weight: 800;
+  color: ${COLOR.text};
+  margin-bottom: 7px;
+`;
+
+const Subtitle = styled.p`
+  font-size: 15px;
+  color: ${COLOR.subText};
+  margin-bottom: 22px;
   text-align: center;
-  margin-bottom: 30px;
 `;
 
 const TermsList = styled.ul`
   list-style-type: none;
   padding: 0;
+  width: 100%;
+  margin-bottom: 18px;
 `;
 
 const TermItem = styled.li`
   display: flex;
   align-items: center;
-  background-color: #d8c8f4;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 20px;
-  font-size: 16px;
+  background: ${COLOR.imgBg};
+  padding: 13px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  color: ${COLOR.text};
+  font-weight: 500;
+`;
+
+const StyledCheckbox = styled.input`
+  accent-color: ${COLOR.accent};
+  width: 20px;
+  height: 20px;
+  margin-right: 14px;
+`;
+
+const Label = styled.label`
+  cursor: pointer;
+  user-select: none;
+`;
+
+const MoreLink = styled.a`
+  color: ${COLOR.accent};
+  font-weight: 600;
+  margin-left: 2px;
+  &:hover {
+    text-decoration: underline;
+    color: ${COLOR.accentDark};
+  }
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1.5px solid ${COLOR.border};
+  margin: 8px 0 12px 0;
+  width: 100%;
 `;
 
 const AgreeButton = styled.button`
   width: 100%;
-  padding: 15px;
-  border-radius: 50px;
+  padding: 14px;
+  border-radius: 10px;
   border: none;
-  background-color: #a78bfa;
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
+  background-color: ${COLOR.accent};
+  color: ${COLOR.text};
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 15px;
+  margin-top: 8px;
+  transition: background 0.18s, color 0.18s;
   &:hover {
-    background-color: #9061f9;
+    background-color: ${COLOR.accentDark};
+    color: ${COLOR.card};
   }
   &:disabled {
-    background-color: #d1c4e9;
+    background-color: ${COLOR.imgBg};
+    color: ${COLOR.subText};
     cursor: not-allowed;
   }
 `;
+
