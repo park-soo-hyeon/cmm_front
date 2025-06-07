@@ -3,14 +3,21 @@ import styled from "styled-components";
 import Header from "./header";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = process.env.REACT_APP_API_URL;
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-type CreateResponse = {
-  success: boolean;
-  tid?: number;
+const COLOR = {
+  bg: "#EDE9F2",
+  card: "#F2F2F2",
+  accent: "#B8B6F2",
+  accentDark: "#545159",
+  text: "#3B3740",
+  subText: "#A19FA6",
+  logo: "#C6C4F2",
+  imgBg: "#D1D0F2",
+  imgShadow: "#CEDEF2",
+  border: "#E3DCF2",
 };
+
+const API_URL = process.env.REACT_APP_API_URL;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Create: React.FC = () => {
   const [modalStep, setModalStep] = useState<1 | 2>(1);
@@ -18,7 +25,7 @@ const Create: React.FC = () => {
   const [memberEmail, setMemberEmail] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tid, setTid] = useState<number | null>(null); // 팀 ID 상태 추가
+  const [tid, setTid] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const handleTeamNameChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -35,14 +42,10 @@ const Create: React.FC = () => {
     }
 
     const creatorEmail = localStorage.getItem("userEmail");
-    if (!creatorEmail) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/create`, {
+      const response = await fetch(`${API_URL}/api/teams/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -53,11 +56,12 @@ const Create: React.FC = () => {
         })
       });
 
-      const data: CreateResponse = await response.json();
+      const text = await response.text();      // 응답을 문자열로 받음
+      const tid = parseInt(text, 10);         // 문자열을 int로 변환
 
-      if (data.success && data.tid) {
-        alert(`팀 "${teamName}" 생성 성공! (팀 ID: ${data.tid})`);
-        setTid(data.tid); // tid 저장
+      if (!isNaN(tid) && tid > 0) {
+        alert(`팀 "${teamName}" 생성 성공! (팀 ID: ${tid})`);
+        setTid(tid); // tid 저장
         setModalStep(2); // 팀원 추가 모달로 이동
       } else {
         alert("팀 생성에 실패했습니다.");
@@ -86,7 +90,7 @@ const Create: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/message`, {
+      const response = await fetch(`${API_URL}/api/teams/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -100,12 +104,39 @@ const Create: React.FC = () => {
       const result: boolean = await response.json();
 
       if (result === true) {
-        alert("팀원 추가 성공!");
+        alert("팀원 요청 성공!");
         setEmails([...emails, memberEmail]);
         setMemberEmail("");
       } else {
-        alert("팀원 추가에 실패했습니다.");
+        alert("팀원 요청에 실패했습니다.");
       }
+    } catch (error) {
+      alert("서버와의 통신에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 팀원 삭제(POST /message/delete)
+  const handleDeleteEmail = async (emailToDelete: string) => {
+    if (tid === null) {
+      alert("팀 ID가 없습니다.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/teams/message/delete`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          tid: tid,
+          uid: emailToDelete
+        })
+      });
+      setEmails(emails.filter((email) => email !== emailToDelete));
+      alert("팀원 요청이 취소되었습니다!");
     } catch (error) {
       alert("서버와의 통신에 실패했습니다.");
     } finally {
@@ -121,59 +152,80 @@ const Create: React.FC = () => {
     <Container>
       <Header />
       <Main>
-        <ModalBackdrop>
-          <ModalBox>
-            <CloseButton onClick={handleCloseModal}>×</CloseButton>
-            {modalStep === 1 ? (
-              <>
-                <ModalText>팀 구성하기</ModalText>
-                <Input
-                  type="text"
-                  placeholder="팀 이름을 입력하세요"
-                  value={teamName}
-                  onChange={handleTeamNameChange}
-                />
-                <ConfirmButton
-                  onClick={handleCreateTeam}
-                  disabled={!teamName.trim() || loading}
-                >
-                  {loading ? "생성 중..." : "확인"}
-                </ConfirmButton>
-              </>
-            ) : (
-              <>
-                <ModalText>팀원 추가</ModalText>
+        <Card>
+          <Title>새 프로젝트(팀) 만들기</Title>
+          <SubTitle>
+            팀 이름을 정하고, 함께할 팀원을 초대하세요.<br />
+            BlankSync에서 실시간 협업을 시작해보세요!
+          </SubTitle>
+          {modalStep === 1 ? (
+            <>
+              <Label>팀 이름</Label>
+              <Input
+                type="text"
+                placeholder="예) 마케팅팀"
+                value={teamName}
+                onChange={e => setTeamName(e.target.value)}
+                maxLength={20}
+              />
+              <MainButton
+                onClick={handleCreateTeam}
+                disabled={!teamName.trim() || loading}
+              >
+                {loading ? "생성 중..." : "팀 생성"}
+              </MainButton>
+            </>
+          ) : (
+            <>
+              <Label>팀원 초대 (최대 3명)</Label>
+              <InputRow>
                 <Input
                   type="email"
-                  placeholder="이메일을 입력하세요"
+                  placeholder="이메일 입력"
                   value={memberEmail}
-                  onChange={handleMemberEmailChange}
+                  onChange={e => setMemberEmail(e.target.value)}
                   disabled={emails.length >= 3 || loading}
                 />
-                <ButtonRow>
-                  <ConfirmButton
-                    onClick={handleEmailConfirm}
-                    disabled={
-                      !memberEmail.trim() ||
-                      emails.length >= 3 ||
-                      loading
-                    }
-                  >
-                    {loading ? "추가 중..." : "추가"}
-                  </ConfirmButton>
-                </ButtonRow>
-                <EmailList>
-                  {emails.map((email, idx) => (
-                    <EmailItem key={idx}>{email}</EmailItem>
-                  ))}
-                </EmailList>
-                {emails.length >= 3 && (
-                  <MaxNotice>팀원은 최대 3명까지 추가할 수 있습니다.</MaxNotice>
-                )}
-              </>
-            )}
-          </ModalBox>
-        </ModalBackdrop>
+                <AddButton
+                  onClick={handleEmailConfirm}
+                  disabled={
+                    !memberEmail.trim() ||
+                    emails.length >= 3 ||
+                    loading
+                  }
+                >
+                  {loading ? "추가 중..." : "추가"}
+                </AddButton>
+              </InputRow>
+              <EmailList>
+                {emails.map((email, idx) => (
+                  <EmailItem key={idx}>
+                    <span>{email}</span>
+                    <DeleteButton
+                      onClick={() => handleDeleteEmail(email)}
+                      disabled={loading}
+                      title="팀원 삭제"
+                    >
+                      ×
+                    </DeleteButton>
+                  </EmailItem>
+                ))}
+              </EmailList>
+              {emails.length >= 3 && (
+                <MaxNotice>팀원은 최대 3명까지 추가할 수 있습니다.</MaxNotice>
+              )}
+              <ButtonRow>
+                <MainButton
+                  onClick={() => navigate("/team")}
+                  disabled={emails.length === 0}
+                >
+                  완료
+                </MainButton>
+                <CancelButton onClick={handleCloseModal}>취소</CancelButton>
+              </ButtonRow>
+            </>
+          )}
+        </Card>
       </Main>
     </Container>
   );
@@ -182,114 +234,186 @@ const Create: React.FC = () => {
 export default Create;
 
 const Container = styled.div`
-  font-family: Arial, sans-serif;
-  background-color: #f6f0ff;
-  color: #333;
   min-height: 100vh;
+  background: ${COLOR.bg};
+  color: ${COLOR.text};
   display: flex;
   flex-direction: column;
 `;
 
 const Main = styled.main`
-  flex-grow: 1;
+  flex: 1;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  padding: 48px 0 0 0;
 `;
 
-const ModalBackdrop = styled.div`
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.3);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalBox = styled.div`
-  position: relative;
-  background: #fff;
-  padding: 32px 40px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+const Card = styled.div`
+  background: ${COLOR.card};
+  border-radius: 18px;
+  box-shadow: 0 6px 32px ${COLOR.imgShadow};
+  padding: 44px 36px 36px 36px;
+  min-width: 340px;
+  max-width: 420px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 320px;
+  border: 1.5px solid ${COLOR.border};
 `;
 
-const ModalText = styled.div`
-  font-size: 1.3rem;
-  margin-bottom: 16px;
+const Title = styled.h2`
+  font-size: 28px;
+  font-weight: 800;
+  color: ${COLOR.text};
+  margin-bottom: 7px;
+  text-align: center;
+`;
+
+const SubTitle = styled.p`
+  font-size: 15px;
+  color: ${COLOR.subText};
+  margin-bottom: 22px;
+  text-align: center;
+`;
+
+const Label = styled.label`
+  font-size: 15px;
+  color: ${COLOR.text};
+  font-weight: 600;
+  margin-bottom: 7px;
+  align-self: flex-start;
 `;
 
 const Input = styled.input`
-  width: 220px;
-  padding: 8px 12px;
-  margin-bottom: 20px;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid ${COLOR.border};
+  background: #fff;
+  font-size: 16px;
+  color: ${COLOR.text};
+  outline: none;
+  margin-bottom: 12px;
+  transition: border 0.18s;
+  &:focus {
+    border: 1.5px solid ${COLOR.accent};
+  }
 `;
 
-const ConfirmButton = styled.button`
-  padding: 8px 24px;
-  font-size: 1rem;
-  background: #7c3aed;
-  color: #fff;
+const InputRow = styled.div`
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+`;
+
+const AddButton = styled.button`
+  background: ${COLOR.accent};
+  color: ${COLOR.text};
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  margin-right: 10px;
+  transition: background 0.18s, color 0.18s;
+  &:hover {
+    background: ${COLOR.accentDark};
+    color: ${COLOR.card};
+  }
   &:disabled {
-    background: #ccc;
+    background: ${COLOR.imgBg};
+    color: ${COLOR.subText};
     cursor: not-allowed;
   }
 `;
 
-const CreateButton = styled(ConfirmButton)`
-  background: #22c55e;
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-`;
-
 const EmailList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 10px 0 0 0;
+  list-style-type: none;
   width: 100%;
+  padding: 0;
+  margin: 0 0 12px 0;
 `;
 
 const EmailItem = styled.li`
-  font-size: 1rem;
-  padding: 2px 0;
-  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: ${COLOR.imgBg};
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: ${COLOR.text};
+`;
+
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  color: #e53e3e;
+  font-size: 1.3rem;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  &:hover {
+    background: #fbe9e9;
+  }
+  &:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    background: none;
+  }
 `;
 
 const MaxNotice = styled.div`
   color: #ef4444;
   margin-top: 8px;
   font-size: 0.95rem;
+  text-align: center;
 `;
 
-const CloseButton = styled.button`
-  position: absolute;
-  top: 15px;
-  right: 20px;
-  background: none;
-  border: none;
-  font-size: 2rem;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  line-height: 1;
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+`;
 
+const MainButton = styled.button`
+  background: ${COLOR.accent};
+  color: ${COLOR.text};
+  border: none;
+  border-radius: 8px;
+  padding: 13px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 12px ${COLOR.imgShadow};
+  transition: background 0.2s, color 0.2s;
   &:hover {
-    color: #333;
+    background: ${COLOR.accentDark};
+    color: ${COLOR.card};
+  }
+  &:disabled {
+    background: ${COLOR.imgBg};
+    color: ${COLOR.subText};
+    cursor: not-allowed;
+  }
+`;
+
+const CancelButton = styled(MainButton)`
+  background: ${COLOR.imgBg};
+  color: ${COLOR.accentDark};
+  box-shadow: none;
+  &:hover {
+    background: ${COLOR.border};
+    color: ${COLOR.text};
   }
 `;
