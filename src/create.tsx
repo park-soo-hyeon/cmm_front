@@ -161,13 +161,15 @@ const Create: React.FC = () => {
           {modalStep === 1 ? (
             <>
               <Label>팀 이름</Label>
-              <Input
-                type="text"
-                placeholder="예) 마케팅팀"
-                value={teamName}
-                onChange={e => setTeamName(e.target.value)}
-                maxLength={20}
-              />
+              <InputWrapper>
+                <Input
+                  type="text"
+                  placeholder="예) 마케팅팀"
+                  value={teamName}
+                  onChange={e => setTeamName(e.target.value)}
+                  maxLength={20}
+                />
+              </InputWrapper>
               <MainButton
                 onClick={handleCreateTeam}
                 disabled={!teamName.trim() || loading}
@@ -296,7 +298,7 @@ const Input = styled.input`
   font-size: 16px;
   color: ${COLOR.text};
   outline: none;
-  margin-bottom: 12px;
+  margin-bottom: 0;  // 기본값 0으로!
   transition: border 0.18s;
   &:focus {
     border: 1.5px solid ${COLOR.accent};
@@ -308,6 +310,12 @@ const InputRow = styled.div`
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
+  align-items: center;
+`;
+
+const InputWrapper = styled.div`
+  width: 100%;
+  margin-bottom: 18px;  // 팀 이름 입력란과 버튼 사이에만 적용
 `;
 
 const AddButton = styled.button`
@@ -315,11 +323,19 @@ const AddButton = styled.button`
   color: ${COLOR.text};
   border: none;
   border-radius: 8px;
-  padding: 9px 20px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s, color 0.18s;
+  height: 48px;
+  padding: 0 24px; /* 세로 padding은 0, 좌우만 넉넉하게 */
+  min-width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  white-space: nowrap; /* 줄바꿈 방지 */
+
   &:hover {
     background: ${COLOR.accentDark};
     color: ${COLOR.card};
