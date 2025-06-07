@@ -6,7 +6,6 @@
     import TextBoxes from "./textBox";
     import VoteBoxes from "./voteBox";
     import ImageBoxes from "./ImageBox";
-    import CursorTracker from "../components/CursorTracker";
     import { useLocation } from "react-router-dom";
 
 
@@ -54,7 +53,6 @@
     ];
 
     const SOCKET_URL = "http://3.220.156.58:3000";
-    const signalingSocket = io('http://localhost:3001');
 
     const Team: React.FC = (
       
@@ -150,10 +148,10 @@
   if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
 
   // 2. 팀원 목록 요청 (혹은 서버에서 자동으로 방송)
-  signalingSocket.emit('start-call', { teamId });
+  socketRef.current?.emit('start-call', { teamId });
 
   // 3. 상대방이 입장하면 peer 연결
-  signalingSocket.on('call-user', async ({ from }) => {
+  socketRef.current?.on('call-user', async ({ from }) => {
     if (peerConnections.current[from]) return;
     const pc = createPeerConnection(from, localStream);
     peerConnections.current[from] = pc;
@@ -161,27 +159,27 @@
     // Offer 생성 및 전송
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    signalingSocket.emit('webrtc-offer', { to: from, from: userId, offer });
+    socketRef.current?.emit('webrtc-offer', { to: from, from: userId, offer });
   });
 
   // 4. 상대방이 offer/answer/candidate 보내면 처리
-  signalingSocket.on('webrtc-offer', async ({ from, offer }) => {
+  socketRef.current?.on('webrtc-offer', async ({ from, offer }) => {
     if (peerConnections.current[from]) return;
     const pc = createPeerConnection(from, localStream);
     peerConnections.current[from] = pc;
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    signalingSocket.emit('webrtc-answer', { to: from, from: userId, answer });
+    socketRef.current?.emit('webrtc-answer', { to: from, from: userId, answer });
   });
 
-  signalingSocket.on('webrtc-answer', async ({ from, answer }) => {
+  socketRef.current?.on('webrtc-answer', async ({ from, answer }) => {
     const pc = peerConnections.current[from];
     if (!pc) return;
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
   });
 
-  signalingSocket.on('webrtc-candidate', async ({ from, candidate }) => {
+  socketRef.current?.on('webrtc-candidate', async ({ from, candidate }) => {
     const pc = peerConnections.current[from];
     if (!pc) return;
     await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -564,7 +562,6 @@
       return (
         <Container>
           <Content>
-            {<CursorTracker teamId={teamId} userId={userId} projectId={PROJECT_ID} />}
             <Sidebar>
               <Logo onClick={() => navigate("/")}>BlankSync</Logo>
               <SidebarTitle>
@@ -749,7 +746,7 @@
                 )}
                 <FloatingButton onClick={() => setShowCreateMenu((v) => !v)}>+</FloatingButton>
               </FloatingButtonWrap>
-              <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 200 }}>
+              <div style={{ position: 'absolute', bottom: 16, left: '16px', zIndex: 200 }}>
   <video ref={localVideoRef} autoPlay muted width={160} height={120} style={{ borderRadius: 8, marginRight: 8, background: '#000' }} />
   {Object.entries(remoteStreams).map(([peerId, stream]) => (
     <video key={peerId} ref={el => { remoteVideoRefs.current[peerId] = el; }} autoPlay width={160} height={120} style={{ borderRadius: 8, marginRight: 8, background: '#000' }} />
