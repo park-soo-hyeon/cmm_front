@@ -96,6 +96,113 @@
       const [remoteStreams, setRemoteStreams] = useState<{ [peerId: string]: MediaStream }>({});
       const peerConnections = useRef<{ [peerId: string]: RTCPeerConnection }>({});
       const [inCall, setInCall] = useState(false);
+      const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+
+ 
+
+      useEffect(() => {
+  if (!localStream) return;
+
+  // call-user: 상대방이 start-call을 누른 경우
+    socketRef.current?.on('call-user', async ({ from }) => {
+    console.log("통화 요청 수신:", from);
+    if (peerConnections.current[from]) return;
+    
+    const pc = createPeerConnection(from, localStream);
+    peerConnections.current[from] = pc;
+    
+    console.log("Offer 생성 중...");
+    // Offer 생성 및 전송
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socketRef.current?.emit('webrtc-offer', { 
+      to: from, 
+      from: userId, 
+      offer,
+      teamId: String(teamId)
+    });
+  });
+
+  // offer 수신
+    socketRef.current?.on('webrtc-offer', async ({ from, offer }) => {
+    console.log("Offer 수신:", from);
+    if (peerConnections.current[from]) return;
+    
+    const pc = createPeerConnection(from, localStream);
+    peerConnections.current[from] = pc;
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socketRef.current?.emit('webrtc-answer', { 
+      to: from, 
+      from: userId, 
+      answer,
+      teamId: String(teamId)
+    });
+  });
+
+
+  // answer 수신
+  socketRef.current?.on('webrtc-answer', async ({ from, answer }) => {
+    console.log("Answer 수신:", from);
+    const pc = peerConnections.current[from];
+    if (!pc) return;
+    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+  });
+
+  // candidate 수신
+  socketRef.current?.on('webrtc-candidate', async ({ from, candidate }) => {
+    console.log("ICE Candidate 수신:", from);
+    const pc = peerConnections.current[from];
+    if (!pc) return;
+    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+  });
+
+  // clean-up
+  return () => {
+    socketRef.current?.off('call-user');
+    socketRef.current?.off('webrtc-offer');
+    socketRef.current?.off('webrtc-answer');
+    socketRef.current?.off('webrtc-candidate');
+  };
+}, [localStream, userId, teamId]);
+
+const handleStartCall = async () => {
+  if (inCall) return;
+  console.log("통화 시작 버튼 클릭");
+  
+  // 1. 내 미디어 스트림 얻기
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: true, 
+      audio: true 
+    });
+    setLocalStream(stream);
+    setInCall(true);
+    
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = stream;
+    }
+    
+    // 2. 팀 참가 (사용자 매핑을 위해)
+    socketRef.current?.emit('join-room', { 
+      teamId: String(teamId), 
+      userId: String(userId) 
+    });
+    
+    // 3. 서버에 start-call emit
+    socketRef.current?.emit('start-call', { 
+      teamId: String(teamId) 
+    });
+    
+    console.log("통화 시작 완료");
+  } catch (err) {
+    console.error("카메라/마이크 접근 실패:", err);
+    alert("카메라/마이크 접근 실패: " + err);
+    setInCall(false);
+  }
+};
+
 
 
       useEffect(() => {
@@ -105,86 +212,90 @@
     }
   });
 }, [remoteStreams]);
+const handleEndCall = () => {
+  console.log("통화 종료");
+  
+  // 1. 모든 peer 연결 종료
+  Object.values(peerConnections.current).forEach(pc => {
+    try {
+      pc.close();
+    } catch (e) {
+      console.error("Peer connection 종료 오류:", e);
+    }
+  });
+  peerConnections.current = {};
+
+  // 2. remoteStreams, remoteVideoRefs 초기화
+  setRemoteStreams({});
+  Object.keys(remoteVideoRefs.current).forEach(peerId => {
+    if (remoteVideoRefs.current[peerId]) {
+      remoteVideoRefs.current[peerId]!.srcObject = null;
+    }
+  });
+  remoteVideoRefs.current = {};
+
+  // 3. 내 localStream 종료 (카메라/마이크 끄기)
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    setLocalStream(null);
+  }
+
+  // 4. inCall 상태도 false로
+  setInCall(false);
+};
+
 
 
       function createPeerConnection(peerId: string, localStream: MediaStream) {
+  console.log("Peer Connection 생성:", peerId);
+  
   const pc = new RTCPeerConnection({
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
     ]
   });
 
   // 내 미디어 트랙 추가
-  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  localStream.getTracks().forEach(track => {
+    console.log("트랙 추가:", track.kind);
+    pc.addTrack(track, localStream);
+  });
 
   // ICE candidate 발생 시 서버로 전송
   pc.onicecandidate = event => {
     if (event.candidate) {
-      socketRef.current?.emit('webrtc-candidate', { to: peerId, from: userId, candidate: event.candidate });
+      console.log("ICE Candidate 전송:", peerId);
+      socketRef.current?.emit('webrtc-candidate', { 
+        to: peerId, 
+        from: userId, 
+        candidate: event.candidate,
+        teamId: String(teamId)
+      });
     }
   };
 
   // 상대방 미디어 스트림 수신 시
   pc.ontrack = event => {
+    console.log("원격 스트림 수신:", peerId);
     setRemoteStreams(prev => ({
       ...prev,
       [peerId]: event.streams[0]
     }));
-    // 비디오 엘리먼트에 할당
-    if (remoteVideoRefs.current[peerId]) {
-      remoteVideoRefs.current[peerId]!.srcObject = event.streams[0];
-    }
+  };
+
+  // 연결 상태 모니터링
+  pc.onconnectionstatechange = () => {
+    console.log(`Peer ${peerId} 연결 상태:`, pc.connectionState);
   };
 
   return pc;
 }
 
-      const handleStartCall = async () => {
-  if (inCall) return;
-  setInCall(true);
 
-  // 1. 내 미디어 스트림 얻기
-  const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
-
-  // 2. 팀원 목록 요청 (혹은 서버에서 자동으로 방송)
-  socketRef.current?.emit('start-call', { teamId });
-
-  // 3. 상대방이 입장하면 peer 연결
-  socketRef.current?.on('call-user', async ({ from }) => {
-    if (peerConnections.current[from]) return;
-    const pc = createPeerConnection(from, localStream);
-    peerConnections.current[from] = pc;
-
-    // Offer 생성 및 전송
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socketRef.current?.emit('webrtc-offer', { to: from, from: userId, offer });
-  });
-
-  // 4. 상대방이 offer/answer/candidate 보내면 처리
-  socketRef.current?.on('webrtc-offer', async ({ from, offer }) => {
-    if (peerConnections.current[from]) return;
-    const pc = createPeerConnection(from, localStream);
-    peerConnections.current[from] = pc;
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socketRef.current?.emit('webrtc-answer', { to: from, from: userId, answer });
-  });
-
-  socketRef.current?.on('webrtc-answer', async ({ from, answer }) => {
-    const pc = peerConnections.current[from];
-    if (!pc) return;
-    await pc.setRemoteDescription(new RTCSessionDescription(answer));
-  });
-
-  socketRef.current?.on('webrtc-candidate', async ({ from, candidate }) => {
-    const pc = peerConnections.current[from];
-    if (!pc) return;
-    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-  });
-};
 
 
 
@@ -746,12 +857,75 @@
                 )}
                 <FloatingButton onClick={() => setShowCreateMenu((v) => !v)}>+</FloatingButton>
               </FloatingButtonWrap>
-              <div style={{ position: 'absolute', bottom: 16, left: '16px', zIndex: 200 }}>
-  <video ref={localVideoRef} autoPlay muted width={160} height={120} style={{ borderRadius: 8, marginRight: 8, background: '#000' }} />
+                <div style={{ position: 'absolute', bottom: 16, left: '16px', zIndex: 200 }}>
+  {/* 내 비디오 */}
+  {localStream && (
+    <video 
+      ref={localVideoRef} 
+      autoPlay 
+      muted 
+      width={160} 
+      height={120} 
+      style={{ 
+        borderRadius: 8, 
+        marginRight: 8, 
+        background: '#000',
+        border: '2px solid #6b5b95'
+      }} 
+    />
+  )}
+  
+  {/* 상대방 비디오들 */}
   {Object.entries(remoteStreams).map(([peerId, stream]) => (
-    <video key={peerId} ref={el => { remoteVideoRefs.current[peerId] = el; }} autoPlay width={160} height={120} style={{ borderRadius: 8, marginRight: 8, background: '#000' }} />
+    <video 
+      key={peerId} 
+      ref={el => { 
+        if (el) remoteVideoRefs.current[peerId] = el; 
+      }} 
+      autoPlay 
+      width={160} 
+      height={120} 
+      style={{ 
+        borderRadius: 8, 
+        marginRight: 8, 
+        background: '#000',
+        border: '2px solid #4CAF50'
+      }} 
+    />
   ))}
 </div>
+<div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 200 }}>
+  {!inCall ? (
+    <button 
+      onClick={handleStartCall} 
+      style={{ 
+        padding: '8px 16px', 
+        background: '#6b5b95', 
+        color: 'white',
+        border: 'none', 
+        borderRadius: 6,
+        cursor: 'pointer'
+      }}
+    >
+      화상통화 시작
+    </button>
+  ) : (
+    <button 
+      onClick={handleEndCall} 
+      style={{ 
+        padding: '8px 16px', 
+        background: '#ff4444', 
+        color: 'white',
+        border: 'none', 
+        borderRadius: 6,
+        cursor: 'pointer'
+      }}
+    >
+      통화 종료
+    </button>
+  )}
+</div>
+
 
             </MainArea>
           </Content>
