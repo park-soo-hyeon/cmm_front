@@ -15,8 +15,13 @@ import Mypage from "./mypage";
 import LoginHandeler from "./login/loginHandeler";
 import NaverLoginHandeler from "./login/naverLoginHandeler";
 
+
+
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
+
+  
+  
   const navigate = useNavigate();
 
   const handleLoginClick = () => {
