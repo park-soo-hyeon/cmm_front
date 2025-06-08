@@ -93,6 +93,7 @@ const ProjectList: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
+          tid: message.tid,
           uid: userEmail,
           choice: choice
         }),

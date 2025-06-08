@@ -650,99 +650,125 @@ useEffect(() => {
     );
   };
 
-  // 스타일 컴포넌트들은 paste.txt와 동일하게 아래에 모두 포함
+const COLOR = {
+  bg: "#EDE9F2",
+  card: "#F2F2F2",
+  accent: "#B8B6F2",
+  accentDark: "#545159",
+  text: "#3B3740",
+  subText: "#A19FA6",
+  logo: "#C6C4F2",
+  imgBg: "#D1D0F2",
+  imgShadow: "#CEDEF2",
+  border: "#E3DCF2",
+};
 
-  const Container = styled.div`
-    font-family: Arial, sans-serif;
-    background-color: #f6f0ff;
-    color: #333;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  `;
 
-  const Content = styled.div`
-    display: flex;
-    flex: 1;
-    height: calc(100vh - 70px);
-  `;
+const Container = styled.div`
+  font-family: 'Pretendard', sans-serif;
+  background: ${COLOR.bg};
+  color: ${COLOR.text};
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+`;
 
-  const Sidebar = styled.div`
-    width: 280px;
-    background: #e3e0f8;
-    padding: 32px 24px 0 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  `;
+const Content = styled.div`
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 70px);
+`;
 
-  const Logo = styled.h1`
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-bottom: 24px;
-  `;
+const Sidebar = styled.div`
+  width: 280px;
+  background: ${COLOR.card};
+  border-right: 1.5px solid ${COLOR.border};
+  padding: 32px 24px 0 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 2px 0 8px ${COLOR.imgShadow};
+`;
 
-  const SidebarTitle = styled.div`
-    font-size: 20px;
-    margin-bottom: 24px;
-  `;
+const Logo = styled.h1`
+  font-size: 24px;
+  font-weight: bold;
+  color: ${COLOR.logo};
+  cursor: pointer;
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+  transition: color 0.18s;
+  &:hover {
+    color: ${COLOR.accent};
+  }
+`;
 
-  const ProjectSection = styled.div`
-    margin-bottom: 24px;
-  `;
+const SidebarTitle = styled.div`
+  font-size: 20px;
+  font-weight: 600;
+  color: ${COLOR.text};
+  margin-bottom: 24px;
+`;
 
-  const ProjectTitle = styled.div`
-    font-weight: bold;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-  `;
+const ProjectSection = styled.div`
+  margin-bottom: 24px;
+`;
 
-  const DropdownArrow = styled.span`
-    font-size: 14px;
-    margin-left: 8px;
-  `;
+const ProjectTitle = styled.div`
+  font-weight: bold;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  color: ${COLOR.text};
+`;
 
-  const MeetingList = styled.ul`
-    list-style: none;
-    padding: 0;
-  `;
+const DropdownArrow = styled.span`
+  font-size: 14px;
+  margin-left: 8px;
+  color: ${COLOR.subText};
+`;
 
-  const MeetingItem = styled.li`
-    margin-bottom: 8px;
-  `;
+const MeetingList = styled.ul`
+  list-style: none;
+  padding: 0;
+`;
 
-  const MeetingDate = styled.div`
-    font-weight: bold;
-    margin-bottom: 4px;
-    margin-left: 10px;
-  `;
+const MeetingItem = styled.li`
+  margin-bottom: 8px;
+`;
 
-  const SubItem = styled.div`
-    font-size: 15px;
-    margin-left: 24px;
-    color: #444;
-    margin-bottom: 2px;
-  `;
+const MeetingDate = styled.div`
+  font-weight: bold;
+  margin-bottom: 4px;
+  margin-left: 10px;
+  color: ${COLOR.text};
+`;
 
-  const SidebarFooter = styled.div`
-    margin-top: auto;
-    font-size: 14px;
-    color: #888;
-    padding: 18px 0 12px 0;
-  `;
+const SubItem = styled.div`
+  font-size: 15px;
+  margin-left: 24px;
+  color: ${COLOR.subText};
+  margin-bottom: 2px;
+`;
+
+const SidebarFooter = styled.div`
+  margin-top: auto;
+  font-size: 14px;
+  color: ${COLOR.subText};
+  padding: 18px 0 12px 0;
+  border-top: 1.5px solid ${COLOR.border};
+`;
 
 const MainArea = styled.div<{
   $isTextMode: boolean;
   $isVoteCreateMode: boolean;
 }>`
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  background: #f6f0ff;
+  flex: 1;
+  background: ${COLOR.bg};
   overflow: hidden;
+  padding: 40px 64px;
   cursor: ${({ $isVoteCreateMode, $isTextMode }) =>
     $isVoteCreateMode
       ? `url("data:image/svg+xml;utf8,<svg width='32' height='32' xmlns='http://www.w3.org/2000/svg'><circle cx='16' cy='16' r='15' fill='white' stroke='%236b5b95' stroke-width='2'/><text x='16' y='23' text-anchor='middle' font-size='20' fill='%236b5b95' font-family='Arial' font-weight='bold'>V</text></svg>") 16 16, auto`
@@ -751,122 +777,130 @@ const MainArea = styled.div<{
       : "default"};
 `;
 
+const FloatingToolbar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: ${COLOR.card};
+  backdrop-filter: blur(8px);
+  border-radius: 30px;
+  padding: 6px 14px;
+  box-shadow: 0 2px 12px ${COLOR.imgShadow};
+  width: max-content;
+  position: relative;
+  z-index: 100;
+  cursor: move;
+  border: 1px solid ${COLOR.border};
+`;
 
-  const FloatingToolbar = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(235, 235, 245, 0.9);
-    backdrop-filter: blur(8px);
-    border-radius: 30px;
-    padding: 6px 14px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
-    width: max-content;
-    position: relative;
-    z-index: 100;
-    cursor: move;
-  `;
-
-  const ToolIcon = styled.button`
-    background: transparent;
-    border: none;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    cursor: pointer;
-    color: #444;
-    padding: 0;
-    &:hover {
-      color: #000;
-    }
-  `;
-
-  const ToolbarDivider = styled.div`
-    height: 20px;
-    width: 1px;
-    background: #dddddd;
-    margin: 0 4px;
-  `;
-
-  const ColorCircle = styled.button<{ color: string }>`
-    width: 20px;
-    height: 20px;
+const ToolIcon = styled.button`
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  color: ${COLOR.text};
+  padding: 0;
+  &:hover {
+    color: ${COLOR.accentDark};
+    background: ${COLOR.imgBg};
     border-radius: 50%;
-    background: ${({color}) => color};
-    border: none;
-    cursor: pointer;
-    margin: 0 2px;
-    &:hover {
-      transform: scale(1.1);
-    }
-  `;
+  }
+`;
 
-  const FloatingButtonWrap = styled.div`
-    position: fixed;
-    bottom: 36px;
-    right: 48px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    z-index: 20;
-  `;
+const ToolbarDivider = styled.div`
+  height: 20px;
+  width: 1px;
+  background: ${COLOR.border};
+  margin: 0 4px;
+`;
 
-  const CreateMenu = styled.div`
-    margin-bottom: 12px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    padding: 6px 0;
-  `;
+const ColorCircle = styled.button<{ color: string }>`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: ${({color}) => color};
+  border: none;
+  cursor: pointer;
+  margin: 0 2px;
+  &:hover {
+    transform: scale(1.1);
+  }
+`;
 
-  const CreateMenuButton = styled.button`
-    display: block;
-    width: 96px;
-    padding: 10px 0;
-    background: none;
-    border: none;
-    color: #6b5b95;
-    font-weight: bold;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: background 0.13s;
-    &:hover {
-      background: #f6f0ff;
-    }
-  `;
+const FloatingButtonWrap = styled.div`
+  position: fixed;
+  bottom: 36px;
+  right: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 20;
+`;
 
-  const FloatingButton = styled.button`
-    width: 48px;
-    height: 48px;
-    background: #e3e0f8;
-    border: none;
-    border-radius: 50%;
-    font-size: 2rem;
-    color: #6b5b95;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    cursor: pointer;
-    z-index: 10;
-  `;
+const CreateMenu = styled.div`
+  margin-bottom: 12px;
+  background: ${COLOR.card};
+  border-radius: 10px;
+  box-shadow: 0 2px 12px ${COLOR.imgShadow};
+  padding: 6px 0;
+  border: 1px solid ${COLOR.border};
+`;
 
-  const ColorPicker = styled.input`
-    width: 30px;
-    height: 30px;
-    border: none;
-    background: none;
-    cursor: pointer;
-  `;
+const CreateMenuButton = styled.button`
+  display: block;
+  width: 96px;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  color: ${COLOR.text};
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.13s;
+  &:hover {
+    background: ${COLOR.imgBg};
+  }
+`;
 
-  const SelectBox = styled.select`
-    height: 30px;
-    padding: 0 8px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    background: white;
-  `;
+const FloatingButton = styled.button`
+  width: 48px;
+  height: 48px;
+  background: ${COLOR.accent};
+  border: none;
+  border-radius: 50%;
+  font-size: 2rem;
+  color: ${COLOR.card};
+  box-shadow: 0 2px 12px ${COLOR.imgShadow};
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.18s;
+  &:hover {
+    background: ${COLOR.accentDark};
+  }
+`;
+
+const ColorPicker = styled.input`
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  cursor: pointer;
+`;
+
+const SelectBox = styled.select`
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid ${COLOR.border};
+  background: ${COLOR.card};
+  color: ${COLOR.text};
+`;
 
   const ImageIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
