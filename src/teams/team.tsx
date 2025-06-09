@@ -99,6 +99,12 @@
       const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
  
+      useEffect(() => {
+  if (localStream && localVideoRef.current) {
+    localVideoRef.current.srcObject = localStream;
+    console.log("Local video stream assigned:", localStream);
+  }
+}, [localStream]);
 
       useEffect(() => {
   if (!localStream) return;
@@ -179,6 +185,8 @@ const handleStartCall = async () => {
     });
     setLocalStream(stream);
     setInCall(true);
+
+    
     
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = stream;
