@@ -95,19 +95,19 @@ const ProjectList: React.FC = () => {
         body: JSON.stringify({ 
           tid: message.tid,
           uid: userEmail,
-          choice: choice
+          bool: choice
         }),
       });
+      console.log(message.tid,
+          userEmail,
+          choice);
       if (!response.ok) {
         throw new Error(`서버 오류: ${response.status}`);
       }
-      const result: boolean = await response.json();
-      if (result === true) {
-        alert(choice ? "팀 초대를 수락하였습니다." : "팀 초대를 거절하였습니다.");
-        setMessages(msgs => msgs.filter(msg => msg !== message));
-      } else {
-        alert("처리에 실패했습니다.");
-      }
+    
+      alert(choice ? "팀 초대를 수락하였습니다." : "팀 초대를 거절하였습니다.");
+      setMessages(msgs => msgs.filter(msg => msg !== message));
+
     } catch (e) {
       alert("서버와의 통신에 실패했습니다.");
     }
