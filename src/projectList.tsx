@@ -14,9 +14,8 @@ type MessageData = {
   tid: number;
   uid: string;
   tname: string;
-  content: number; 
+  content: number;
 };
-
 
 const ProjectList: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +24,7 @@ const ProjectList: React.FC = () => {
   const [teams, setTeams] = useState<TeamData[]>([]);
   const userEmail = localStorage.getItem("userEmail");
   const mailIconRef = useRef<HTMLSpanElement>(null);
-  const [modalPos, setModalPos] = useState<{top: number, left: number}>({top: 0, left: 0});
+  const [modalPos, setModalPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   // 팀 목록 가져오기
   useEffect(() => {
@@ -84,7 +83,7 @@ const ProjectList: React.FC = () => {
       return;
     }
     // 값 체크
-    if (typeof message.tid !== 'number' || !userEmail) {
+    if (typeof message.tid !== "number" || !userEmail) {
       alert("잘못된 요청입니다.");
       return;
     }
@@ -92,27 +91,28 @@ const ProjectList: React.FC = () => {
       const response = await fetch(`${API_URL}/api/users/message/choice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           tid: message.tid,
           uid: userEmail,
-          bool: choice
+          bool: choice,
         }),
       });
-      console.log(message.tid,
-          userEmail,
-          choice);
+      console.log(message.tid, userEmail, choice);
       if (!response.ok) {
         throw new Error(`서버 오류: ${response.status}`);
       }
-    
-      alert(choice ? "팀 초대를 수락하였습니다." : "팀 초대를 거절하였습니다.");
-      setMessages(msgs => msgs.filter(msg => msg !== message));
 
+      alert(choice ? "팀 초대를 수락하였습니다." : "팀 초대를 거절하였습니다.");
+      setMessages((msgs) => msgs.filter((msg) => msg !== message));
     } catch (e) {
       alert("서버와의 통신에 실패했습니다.");
     }
   };
 
+  // 거절 메시지 x 버튼 클릭 시 해당 메시지 삭제
+  const handleDismiss = (message: MessageData) => {
+    setMessages((msgs) => msgs.filter((msg) => msg !== message));
+  };
 
   return (
     <Container>
@@ -174,6 +174,9 @@ const ProjectList: React.FC = () => {
                         ) : (
                           <>
                             <b>{message.uid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
+                            <DismissButton onClick={() => handleDismiss(message)}>
+                              ×
+                            </DismissButton>
                           </>
                         )}
                       </div>
@@ -197,7 +200,6 @@ const ProjectList: React.FC = () => {
               </MessagePanelBody>
             </MessagePanel>
           )}
-
         </Sidebar>
         <MainArea>
           {teams.length === 0 ? (
@@ -244,7 +246,7 @@ const COLOR = {
 };
 
 const Container = styled.div`
-  font-family: 'Pretendard', sans-serif;
+  font-family: "Pretendard", sans-serif;
   background-color: ${COLOR.bg};
   color: ${COLOR.text};
   min-height: 100vh;
@@ -398,11 +400,10 @@ const MailIcon = (props: React.HTMLProps<HTMLSpanElement>) => (
   </span>
 );
 
-// 메시지 모달 스타일
 const MessagePanel = styled.div`
   position: fixed;
   top: 0;
-  left: 280px; // Sidebar width와 정확히 맞추기
+  left: 280px;
   height: 100vh;
   width: 360px;
   background: ${COLOR.card};
@@ -493,6 +494,20 @@ const ModalButton = styled.button<{ $accept?: boolean }>`
   }
 `;
 
+const DismissButton = styled.button`
+  background: transparent;
+  border: none;
+  color: ${COLOR.subText};
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-left: 8px;
+  padding: 0;
+  line-height: 1;
+  &:hover {
+    color: ${COLOR.accentDark};
+  }
+`;
+
 const NoMessage = styled.div`
   color: ${COLOR.subText};
   font-size: 1.05rem;
@@ -528,8 +543,6 @@ const ProjectCardImage = styled.img`
   border-radius: 12px 12px 0 0;
   display: block;
 `;
-
-
 
 const ProjectCardLabel = styled.div`
   width: 100%;
