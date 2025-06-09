@@ -854,13 +854,9 @@ const handleEndCall = () => {
                 {showCreateMenu && (
                   <CreateMenu>
                     <CreateMenuButton onClick={handleCreateVoteBoxButton}>투표</CreateMenuButton>
-                    {/* 필요시 다른 생성 버튼들 추가 */}
-                    <ToolIcon onClick={handleStartCall} title="영상통화 시작">
-  <svg width="20" height="20" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="10" fill="#6b5b95" />
-    <polygon points="10,8 16,12 10,16" fill="#fff" />
-  </svg>
-</ToolIcon>
+                    <CreateMenuButton onClick={inCall ? handleEndCall : handleStartCall}>
+                      {inCall ? '통화 종료' : '화상통화'}
+                    </CreateMenuButton>
                   </CreateMenu>
                 )}
                 <FloatingButton onClick={() => setShowCreateMenu((v) => !v)}>+</FloatingButton>
@@ -902,37 +898,7 @@ const handleEndCall = () => {
     />
   ))}
 </div>
-<div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 200 }}>
-  {!inCall ? (
-    <button 
-      onClick={handleStartCall} 
-      style={{ 
-        padding: '8px 16px', 
-        background: '#6b5b95', 
-        color: 'white',
-        border: 'none', 
-        borderRadius: 6,
-        cursor: 'pointer'
-      }}
-    >
-      화상통화 시작
-    </button>
-  ) : (
-    <button 
-      onClick={handleEndCall} 
-      style={{ 
-        padding: '8px 16px', 
-        background: '#ff4444', 
-        color: 'white',
-        border: 'none', 
-        borderRadius: 6,
-        cursor: 'pointer'
-      }}
-    >
-      통화 종료
-    </button>
-  )}
-</div>
+
 
 
             </MainArea>
