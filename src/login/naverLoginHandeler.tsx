@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:80";
+const API_URL = process.env.REACT_APP_API_URL;
 
 const NaverLoginHandeler = () => {
   const navigate = useNavigate();

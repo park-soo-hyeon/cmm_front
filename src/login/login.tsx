@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const { login } = useAuth();
 
   const NAVER_CLIENT_ID = "YqfWThdztNwv006mYBBW";
-  const NAVER_REDIRECT_URI = "http://localhost:80/naver/callback";
+  const NAVER_REDIRECT_URI = "http://3.220.156.58/naver/callback";
   const NAVER_STATE = "random_state_string"; // CSRF 방지용 임의 문자열
 
   const NAVER_AUTH_URL =
