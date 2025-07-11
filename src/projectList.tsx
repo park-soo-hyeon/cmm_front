@@ -8,6 +8,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 type TeamData = {
   tid: number;
   tname: string;
+  tleader: string;
 };
 
 type MessageData = {
@@ -17,6 +18,12 @@ type MessageData = {
   content: number;
 };
 
+type EditingTeamInfo = {
+  tid: number;
+  top: number;
+  left: number;
+};
+
 const ProjectList: React.FC = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<MessageData[]>([]);
@@ -24,7 +31,8 @@ const ProjectList: React.FC = () => {
   const [teams, setTeams] = useState<TeamData[]>([]);
   const userEmail = localStorage.getItem("userEmail");
   const mailIconRef = useRef<HTMLSpanElement>(null);
-  const [modalPos, setModalPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [editingTeam, setEditingTeam] = useState<EditingTeamInfo | null>(null);
+  const modificationMenuRef = useRef<HTMLDivElement>(null);
 
   // 팀 목록 가져오기
   useEffect(() => {
@@ -48,6 +56,19 @@ const ProjectList: React.FC = () => {
     };
 
     fetchTeams();
+  }, [userEmail]);
+
+  // 메뉴 외부 클릭 시 메뉴 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modificationMenuRef.current && !modificationMenuRef.current.contains(event.target as Node)) {
+        setEditingTeam(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   // 메시지 모달 열기
@@ -112,6 +133,56 @@ const ProjectList: React.FC = () => {
   // 거절 메시지 x 버튼 클릭 시 해당 메시지 삭제
   const handleDismiss = (message: MessageData) => {
     setMessages((msgs) => msgs.filter((msg) => msg !== message));
+  };
+
+  // 수정 버튼 클릭 핸들러
+  const handleModifyClick = (event: React.MouseEvent, team: TeamData) => {
+    event.stopPropagation(); // 카드 클릭(페이지 이동) 이벤트 전파 방지
+    const rect = event.currentTarget.getBoundingClientRect();
+    setEditingTeam({
+      tid: team.tid,
+      top: rect.top + window.scrollY,
+      left: rect.left + window.scrollX - 150, // 메뉴가 버튼 왼쪽에 오도록 조정
+    });
+  };
+
+  // 팀원 수정 핸들러 (실제 로직 구현 필요)
+  const handleEditMembers = (tid: number) => {
+    alert(`${tid}번 팀의 팀원을 수정합니다.`);
+    setEditingTeam(null); // 메뉴 닫기
+    // navigate(`/team/${tid}/edit`); // 예시: 수정 페이지로 이동
+  };
+
+  // 프로젝트 삭제 핸들러 (실제 로직 구현 필요)
+  const handleDeleteProject = async (tid: number) => {
+    if (window.confirm("정말로 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+      try {
+        // --- 추가된 API 호출 로직 ---
+        const response = await fetch(`${API_URL}/api/teams/delete`, {
+          method: "POST", // 또는 서버에서 요구하는 HTTP 메소드 (예: DELETE)
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tid: tid }), // 팀 ID를 JSON으로 전송
+        });
+
+        if (!response.ok) {
+          // 서버에서 에러 응답이 온 경우
+          throw new Error("프로젝트 삭제에 실패했습니다.");
+        }
+        
+        // --- API 호출 성공 시 ---
+        alert("프로젝트가 성공적으로 삭제되었습니다.");
+        
+        // UI에서 해당 프로젝트 즉시 제거
+        setTeams(teams.filter(team => team.tid !== tid)); 
+        
+      } catch (error) {
+        console.error("Error deleting project:", error);
+        alert("프로젝트 삭제 중 오류가 발생했습니다.");
+      } finally {
+        // 성공하든 실패하든 메뉴는 닫기
+        setEditingTeam(null);
+      }
+    }
   };
 
   return (
@@ -206,23 +277,45 @@ const ProjectList: React.FC = () => {
             <NoTeamsText>생성된 팀이 없습니다.</NoTeamsText>
           ) : (
             <ProjectGrid>
-              {teams.map((team, i) => (
+              {teams.map((team) => (
                 <ProjectCard
-                  key={i}
+                  key={team.tid}
                   onClick={() =>
                     navigate("/team", {
-                      state: {
-                        userId: userEmail,
-                        teamId: team.tid,
-                      },
+                      state: { userId: userEmail, teamId: team.tid },
                     })
                   }
                 >
                   <ProjectCardImage src="image/listImage.jpg" alt={team.tname} />
                   <ProjectCardLabel>{team.tname}</ProjectCardLabel>
+                  
+                  {/* --- 추가된 부분 --- */}
+                  {/* 팀장일 경우에만 수정 버튼 표시 */}
+                  {userEmail === team.tleader && (
+                    <ModifyButton onClick={(e) => handleModifyClick(e, team)}>
+                      수정
+                    </ModifyButton>
+                  )}
                 </ProjectCard>
               ))}
             </ProjectGrid>
+          )}
+
+          {/* --- 추가된 부분 --- */}
+          {/* 수정 메뉴 (Portal을 사용하면 더 안정적으로 렌더링 가능) */}
+          {editingTeam && createPortal(
+            <ModificationMenu
+              ref={modificationMenuRef}
+              style={{ top: `${editingTeam.top}px`, left: `${editingTeam.left}px` }}
+            >
+              <MenuButton onClick={() => handleEditMembers(editingTeam.tid)}>
+                팀원 목록 수정
+              </MenuButton>
+              <MenuButton onClick={() => handleDeleteProject(editingTeam.tid)} $delete>
+                프로젝트 삭제
+              </MenuButton>
+            </ModificationMenu>,
+            document.body // body에 직접 렌더링하여 z-index 문제 방지
           )}
         </MainArea>
       </Body>
@@ -567,9 +660,63 @@ const ProjectCard = styled.div`
   box-shadow: 0 2px 8px ${COLOR.imgShadow};
   transition: box-shadow 0.18s, transform 0.18s;
   cursor: pointer;
+  position: relative; // 수정 버튼 및 메뉴의 기준점
+
   &:hover {
     box-shadow: 0 4px 12px ${COLOR.imgShadow};
     transform: translateY(-2px);
+  }
+`;
+
+const ModifyButton = styled.button`
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background-color: ${COLOR.subText};
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  z-index: 5; // 카드 컨텐츠 위에 오도록 설정
+
+  &:hover {
+    background-color: ${COLOR.accentDark};
+  }
+`;
+
+const ModificationMenu = styled.div`
+  position: absolute; // body를 기준으로 위치
+  width: 150px;
+  background-color: ${COLOR.card};
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 1px solid ${COLOR.border};
+  z-index: 4000; // 최상단에 보이도록 z-index 설정
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const MenuButton = styled.button<{ $delete?: boolean }>`
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  border: none;
+  background-color: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: ${({ $delete }) => ($delete ? "#D9534F" : COLOR.text)};
+
+  &:hover {
+    background-color: ${COLOR.bg};
+    color: ${({ $delete }) => ($delete ? "#a93e3b" : COLOR.accentDark)};
   }
 `;
 
