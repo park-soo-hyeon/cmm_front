@@ -88,6 +88,13 @@ const Create: React.FC = () => {
       return;
     }
 
+    // --- 추가된 부분: 현재 로그인한 사용자(초대 보내는 사람) 이메일 가져오기 ---
+    const senderEmail = localStorage.getItem("userEmail");
+    if (!senderEmail) {
+      alert("로그인 정보가 없습니다. 다시 로그인해 주세요.");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/teams/message`, {
@@ -95,9 +102,11 @@ const Create: React.FC = () => {
         headers: {
           "Content-Type": "application/json"
         },
+        // --- 수정된 부분: body에 SendUid 추가 ---
         body: JSON.stringify({
-          tid: tid,
-          uid: memberEmail
+          tid: tid,          // 팀 ID
+          uid: memberEmail,  // 초대받는 팀원 이메일
+          sendUid: senderEmail // 초대를 보내는 사람(로그인한 유저) 이메일
         })
       });
 

@@ -8,12 +8,13 @@ const API_URL = process.env.REACT_APP_API_URL;
 type TeamData = {
   tid: number;
   tname: string;
-  tleader: string;
+  uid: string;
 };
 
 type MessageData = {
   tid: number;
   uid: string;
+  sendUid: string;
   tname: string;
   content: number;
 };
@@ -49,6 +50,7 @@ const ProjectList: React.FC = () => {
         }
 
         const data: TeamData[] = await response.json();
+        
         setTeams(data);
       } catch (error) {
         console.error("Error fetching teams:", error);
@@ -84,6 +86,7 @@ const ProjectList: React.FC = () => {
         throw new Error(`서버 오류: ${response.status}`);
       }
       const data: MessageData[] = await response.json();
+      console.log(data);
       setMessages(data);
       setShowMessage(true);
     } catch (e) {
@@ -97,14 +100,14 @@ const ProjectList: React.FC = () => {
   const handleCloseMessage = () => setShowMessage(false);
 
   const handleChoice = async (choice: boolean, message: MessageData) => {
-    const userEmail = localStorage.getItem("userEmail");
+    const userEmail = localStorage.getItem("userEmail"); // 현재 로그인한 유저
 
     if (!userEmail) {
       alert("로그인이 필요합니다.");
       return;
     }
-    // 값 체크
-    if (typeof message.tid !== "number" || !userEmail) {
+    // 값 체크 (기존 코드와 동일)
+    if (typeof message.tid !== "number" || !message.uid) {
       alert("잘못된 요청입니다.");
       return;
     }
@@ -112,13 +115,15 @@ const ProjectList: React.FC = () => {
       const response = await fetch(`${API_URL}/api/users/message/choice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // --- 이 부분이 요청에 맞게 수정되었습니다 ---
         body: JSON.stringify({
-          tid: message.tid,
-          uid: userEmail,
-          bool: choice,
+          tid: message.tid,        // 팀 ID
+          uid: message.uid,        // 초대를 보낸 사람의 ID
+          sendUid: userEmail,      // 응답하는 사람(현재 로그인한 유저)의 ID
+          bool: choice,            // 수락/거절 여부
         }),
       });
-      console.log(message.tid, userEmail, choice);
+      
       if (!response.ok) {
         throw new Error(`서버 오류: ${response.status}`);
       }
@@ -131,8 +136,35 @@ const ProjectList: React.FC = () => {
   };
 
   // 거절 메시지 x 버튼 클릭 시 해당 메시지 삭제
-  const handleDismiss = (message: MessageData) => {
-    setMessages((msgs) => msgs.filter((msg) => msg !== message));
+  const handleDismiss = async (message: MessageData) => {
+    const userEmail = localStorage.getItem("userEmail");
+    if (!userEmail) {
+      alert("로그인 정보가 없습니다.");
+      return;
+    }
+
+    try {
+      // API 서버에 메시지 삭제 요청
+      const response = await fetch(`${API_URL}/api/users/message/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: userEmail,      // 현재 로그인한 사용자의 ID
+          tid: message.tid,    // 삭제할 메시지의 팀 ID
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("메시지 삭제에 실패했습니다.");
+      }
+
+      // API 요청 성공 시에만 화면에서 메시지 제거
+      setMessages((msgs) => msgs.filter((msg) => msg !== message));
+      alert("메시지를 삭제했습니다.");
+
+    } catch (e: any) {
+      alert(e.message || "서버와의 통신에 실패했습니다.");
+    }
   };
 
   // 수정 버튼 클릭 핸들러
@@ -240,11 +272,11 @@ const ProjectList: React.FC = () => {
                       <div>
                         {message.content === 1 ? (
                           <>
-                            <b>{message.uid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
+                            <b>{message.sendUid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
                           </>
                         ) : (
                           <>
-                            <b>{message.uid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
+                            <b>{message.sendUid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
                             <DismissButton onClick={() => handleDismiss(message)}>
                               ×
                             </DismissButton>
@@ -291,7 +323,7 @@ const ProjectList: React.FC = () => {
                   
                   {/* --- 추가된 부분 --- */}
                   {/* 팀장일 경우에만 수정 버튼 표시 */}
-                  {userEmail === team.tleader && (
+                  {team.uid === userEmail && (
                     <ModifyButton onClick={(e) => handleModifyClick(e, team)}>
                       수정
                     </ModifyButton>
