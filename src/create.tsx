@@ -106,7 +106,7 @@ const Create: React.FC = () => {
         body: JSON.stringify({
           tid: tid,          // 팀 ID
           uid: memberEmail,  // 초대받는 팀원 이메일
-          sendUid: senderEmail // 초대를 보내는 사람(로그인한 유저) 이메일
+          senduid: senderEmail // 초대를 보내는 사람(로그인한 유저) 이메일
         })
       });
 

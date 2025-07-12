@@ -14,7 +14,7 @@ type TeamData = {
 type MessageData = {
   tid: number;
   uid: string;
-  sendUid: string;
+  senduid: string;
   tname: string;
   content: number;
 };
@@ -272,11 +272,11 @@ const ProjectList: React.FC = () => {
                       <div>
                         {message.content === 1 ? (
                           <>
-                            <b>{message.sendUid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
+                            <b>{message.senduid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
                           </>
                         ) : (
                           <>
-                            <b>{message.sendUid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
+                            <b>{message.senduid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
                             <DismissButton onClick={() => handleDismiss(message)}>
                               ×
                             </DismissButton>
