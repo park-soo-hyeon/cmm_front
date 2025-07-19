@@ -34,7 +34,7 @@ const Mypage: React.FC = () => {
 
       try {
         // 2. 백엔드 API로 POST 요청 보내기
-        const response = await fetch(`${API_URL}/api/users/mypage`, {
+        const response = await fetch(`${API_URL}/spring/api/users/mypage`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -84,7 +84,7 @@ const Mypage: React.FC = () => {
     if (!editedData) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/users/update`, {
+      const response = await fetch(`${API_URL}/spring/api/users/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editedData), // 수정된 데이터를 백엔드로 전송

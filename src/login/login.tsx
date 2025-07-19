@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const { login } = useAuth();
 
   const NAVER_CLIENT_ID = "YqfWThdztNwv006mYBBW";
-  const NAVER_REDIRECT_URI = "http://3.220.156.58/naver/callback";
+  const NAVER_REDIRECT_URI = "localhost:80/spring/naver/callback";
   const NAVER_STATE = "random_state_string"; // CSRF 방지용 임의 문자열
 
   const NAVER_AUTH_URL =
@@ -29,7 +29,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/login`, {
+      const response = await fetch(`${API_URL}/spring/api/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

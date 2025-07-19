@@ -45,7 +45,7 @@ const Create: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/teams/create`, {
+      const response = await fetch(`${API_URL}/spring/api/teams/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -97,7 +97,7 @@ const Create: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/teams/message`, {
+      const response = await fetch(`${API_URL}/spring/api/teams/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -134,7 +134,7 @@ const Create: React.FC = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/teams/message/delete`, {
+      const response = await fetch(`${API_URL}/spring/api/teams/message/delete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

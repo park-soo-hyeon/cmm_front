@@ -26,7 +26,7 @@ const NewMember: React.FC = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/register`, {
+      const response = await fetch(`${API_URL}/spring/api/users/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -57,7 +57,7 @@ const NewMember: React.FC = () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams({ id: email }).toString();
-      const response = await fetch(`${API_URL}/api/users/check-id?${queryParams}`, {
+      const response = await fetch(`${API_URL}/spring/api/users/check-id?${queryParams}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" }
       });
