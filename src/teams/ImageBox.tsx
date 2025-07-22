@@ -20,7 +20,7 @@ interface ImageBoxesProps {
   imageBoxes: ImageBox[];
   userId: string;
     teamId: string;
-    projectId: string;
+    projectId: string; // PROJECT_ID는 Team.tsx에서 직접 넘겨받으므로 필요없을 수도 있습니다.
   setImageBoxes: React.Dispatch<React.SetStateAction<ImageBox[]>>;
   focusedImageIdx: number | null;
   setFocusedImageIdx: React.Dispatch<React.SetStateAction<number | null>>;
@@ -211,7 +211,8 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
           }}
         >
           <img
-            src={`http://3.220.156.58:3000/api/image/${img.node}/${img.pId}/${img.tId}`}
+            // 이 부분이 수정되었습니다: IP 주소 대신 상대 경로 사용
+            src={`/api/image/${img.node}/${img.pId}/${img.tId}`}
             alt=""
             style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
             draggable={false}
@@ -241,6 +242,19 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
       ))}
     </>
   );
+};
+
+const COLOR = {
+  bg: "#EDE9F2",
+  card: "#F2F2F2",
+  accent: "#B8B6F2",
+  accentDark: "#545159",
+  text: "#3B3740",
+  subText: "#A19FA6",
+  logo: "#C6C4F2",
+  imgBg: "#D1D0F2",
+  imgShadow: "#CEDEF2",
+  border: "#E3DCF2",
 };
 
 const ImageBoxWrap = styled.div<{ focused: boolean }>`

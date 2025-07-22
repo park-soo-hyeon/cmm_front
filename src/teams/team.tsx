@@ -51,8 +51,8 @@
     'BM Jua',
     'Gungseo',
   ];
+  const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "wss://default.domain";
 
-  const SOCKET_URL = "http://3.220.156.58:3000";
 
     const Team: React.FC = (
       
@@ -401,7 +401,7 @@ useEffect(() => {
     
     // 소켓 연결 및 이벤트 핸들러 (paste.txt와 동일)
     useEffect(() => {
-      const socket = io(SOCKET_URL, { transports: ["websocket"] });
+      const socket = io(SOCKET_URL, {  path: '/node/socket.io',transports: ["websocket"] });
       socketRef.current = socket;
       socket.on("connect", () => {
         console.log("Socket connected!", socket.id);
