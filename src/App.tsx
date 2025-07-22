@@ -14,6 +14,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Mypage from "./mypage";
 import LoginHandeler from "./login/loginHandeler";
 import NaverLoginHandeler from "./login/naverLoginHandeler";
+import Leader from "./leader";
 
 
 
@@ -115,6 +116,14 @@ const App: React.FC = () => {
           />
           <Route path="/advice" element={<Advice />} />
           <Route path="/mypage" element={<Mypage />} />
+          <Route
+            path="/leader"
+            element={
+              <ProtectedRoute>
+                <Leader />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>

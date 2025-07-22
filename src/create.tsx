@@ -75,6 +75,12 @@ const Create: React.FC = () => {
 
   // 팀원 추가(POST /message)
   const handleEmailConfirm = async () => {
+    const currentUserEmail = localStorage.getItem("userEmail");
+    if (memberEmail === currentUserEmail) {
+      alert("본인은 팀원으로 초대할 수 없습니다!");
+      return;
+    }
+
     if (!EMAIL_REGEX.test(memberEmail)) {
       alert("이메일 형식을 지켜주세요!");
       return;
@@ -87,8 +93,7 @@ const Create: React.FC = () => {
       alert("팀 ID가 없습니다. 먼저 팀을 생성해 주세요.");
       return;
     }
-
-    // --- 추가된 부분: 현재 로그인한 사용자(초대 보내는 사람) 이메일 가져오기 ---
+    
     const senderEmail = localStorage.getItem("userEmail");
     if (!senderEmail) {
       alert("로그인 정보가 없습니다. 다시 로그인해 주세요.");
@@ -102,11 +107,10 @@ const Create: React.FC = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        // --- 수정된 부분: body에 SendUid 추가 ---
         body: JSON.stringify({
-          tid: tid,          // 팀 ID
-          uid: memberEmail,  // 초대받는 팀원 이메일
-          senduid: senderEmail // 초대를 보내는 사람(로그인한 유저) 이메일
+          tid: tid,
+          uid: memberEmail,
+          senduid: senderEmail
         })
       });
 
