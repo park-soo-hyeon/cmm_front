@@ -15,6 +15,10 @@ const io = socketIo(server, {
 });
 app.use(cors());
 
+const insertLog = require('./logger');
+
+
+
 const userIdToSocketId = {};
 const socketIdToUserId = {};
 
@@ -22,12 +26,12 @@ let textBoxes = [];
 let votes = [];
 let images = [];
 
+
+
 // 이미지 업로드 API
-app.post('/api/image/upload', upload.single('image'), (req, res) => {
+app.post('/node/api/image/upload', upload.single('image'), (req, res) => {
 handleImageUpload(req, res, io, images);
 });
-
-
 
 // 데이터 초기화 함수
 async function initializeTextBoxes() {
@@ -114,7 +118,7 @@ async function initializeImages() {
 }
 
 // 이미지 불러오기
-app.get('/api/image/:node/:pId/:tId', async (req, res) => {
+app.get('/node/api/image/:node/:pId/:tId', async (req, res) => {
   const { node, pId, tId } = req.params;
   try {
     const [image] = await queryPromise(
@@ -266,6 +270,18 @@ initializeTextBoxes()
         socketIdToUserId[socket.id] = uId;
         
         socket.join(String(currentTeamId));
+/////////////////
+        try {
+          await insertLog({
+            node: '',           // joinTeam 이벤트는 특정 node가 없으니 빈 문자열 또는 null로 처리
+            pId: currentProjectId,
+            tId: currentTeamId,
+            uId: currentUserId,
+            action: 'join-team'
+          }, queryPromise);
+        } catch (error) {
+          console.error('로그 저장 실패:', error);
+        }
 
         const filteredTexts = textBoxes.filter(t => t.tId == currentTeamId && t.pId == currentProjectId);
         const filteredVotes = votes.filter(v => v.tId == currentTeamId && v.pId == currentProjectId);
