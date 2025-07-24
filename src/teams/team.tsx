@@ -263,7 +263,17 @@ const handleEndCall = () => {
   const pc = new RTCPeerConnection({
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.ekiga.net' },
+      { urls: 'stun:stun.voipbuster.com' },
+      { urls: 'stun:stun.jitsi.net:443' }, // Jitsi의 STUN 서버는 443 포트도 지원하여 방화벽 통과에 유리할 수 있습니다.
+      { urls: 'stun:stun.ideasip.com' },
+      { urls: 'stun:stun.schlund.de' },
+      { urls: 'stun:stun.sipgate.net:10000' },
+      { urls: 'stun:stun.fwd.org:3478' }
     ]
   });
 
