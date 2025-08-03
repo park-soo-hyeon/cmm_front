@@ -128,6 +128,5 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
 };
 
 const ImageBoxWrap = styled.div<{ focused: boolean }>` position: absolute; min-width: ${MIN_WIDTH}px; min-height: ${MIN_HEIGHT}px; background: transparent; border: 2px solid ${({ focused }) => (focused ? 'rgba(107, 91, 149, 0.5)' : 'transparent')}; border-radius: 8px; box-sizing: border-box; padding: 0; &:hover { border-color: ${({ focused }) => (focused ? '#6b5b95' : 'transparent')}; } `;
-// ButtonGroup, CircleBtn, ResizeHandle은 TextBoxes.tsx와 동일하므로 재사용 가능합니다.
 
 export default ImageBoxes;

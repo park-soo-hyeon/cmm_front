@@ -155,12 +155,14 @@ const VoteBoxes: React.FC<VoteBoxesProps> = ({
             ))}
           </VoteList>
           {focusedVoteIdx === idx && (
-            <ButtonGroup>
-              <CircleBtn color="#00d26a" title="이동" onMouseDown={e => handleDragStart(idx, e)} />
-              <CircleBtn color="#ff4a4a" title="삭제" onMouseDown={e => { e.stopPropagation(); handleDeleteVote(idx); }} />
-            </ButtonGroup>
+            <>
+              <ButtonGroup>
+                <CircleBtn color="#00d26a" title="이동" onMouseDown={e => handleDragStart(idx, e)} />
+                <CircleBtn color="#ff4a4a" title="삭제" onMouseDown={e => { e.stopPropagation(); handleDeleteVote(idx); }} />
+              </ButtonGroup>
+              <ResizeHandle onMouseDown={e => handleResizeStart(idx, e)} />
+            </>
           )}
-          <ResizeHandle onMouseDown={e => handleResizeStart(idx, e)} />
         </VoteBoxWrap>
       ))}
     </>
