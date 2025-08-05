@@ -108,12 +108,6 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       });
     };
     
-    const handleUserJoined = ({ userId: peerId }: { userId: string }) => {
-        if (peerId !== userId && !peerConnections.current[peerId]) {
-            const pc = createPeerConnection(peerId, true);
-            peerConnections.current[peerId] = pc;
-        }
-    };
 
     const handleUserLeft = ({ userId: peerId }: { userId: string }) => cleanupPeerConnection(peerId);
 
@@ -138,7 +132,6 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
     };
 
     socket.on('existing-users', handleExistingUsers);
-    socket.on('user-joined', handleUserJoined);
     socket.on('user-left', handleUserLeft);
     socket.on('webrtc-offer', handleOffer);
     socket.on('webrtc-answer', handleAnswer);
@@ -146,7 +139,6 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
 
     return () => {
       socket.off('existing-users', handleExistingUsers);
-      socket.off('user-joined', handleUserJoined);
       socket.off('user-left', handleUserLeft);
       socket.off('webrtc-offer', handleOffer);
       socket.off('webrtc-answer', handleAnswer);

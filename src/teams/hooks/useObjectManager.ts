@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 
-// 필요한 객체 타입을 정의합니다.
+// 필요한 객체 타입을 정의합니다. (any 대신 실제 타입 사용 권장)
 type TextBox = any;
 type VoteBox = any;
 type ImageBox = any;
+type VoteUser = { uId: string, num: number };
 
 export const useObjectManager = (socket: Socket | null) => {
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
@@ -29,10 +30,21 @@ export const useObjectManager = (socket: Socket | null) => {
 
     // 투표 박스 이벤트
     const onAddVote = (data: VoteBox) => setVoteBoxes(prev => [...prev, data]);
-    const onUpdateVote = (data: VoteBox) => setVoteBoxes(prev => prev.map(box => box.node === data.node ? { ...box, ...data } : box));
+    const onUpdateVote = (data: VoteBox) => setVoteBoxes(prev => prev.map(box => box.node === data.node ? { ...box, title: data.cTitle, list: data.cList } : box));
     const onMoveVote = (data: VoteBox) => setVoteBoxes(prev => prev.map(box => box.node === data.node ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height } : box));
     const onRemoveVote = (data: { node: string }) => setVoteBoxes(prev => prev.filter(box => box.node !== data.node));
-    const onChoiceVote = (data: any) => setVoteBoxes(prev => prev.map(box => box.node === data.node ? { ...box, count: data.count, users: data.users } : box));
+    const onChoiceVote = (data: any) => {
+        setVoteBoxes(prev => prev.map(box => {
+            if (box.node === data.node) {
+                const newUsers = [
+                    ...box.users.filter((u: VoteUser) => u.uId !== data.user),
+                    ...(data.num >= 1 && data.num <= 4 ? [{ uId: data.user, num: data.num }] : [])
+                ];
+                return { ...box, count: data.count, users: newUsers };
+            }
+            return box;
+        }));
+    };
 
     // 이미지 박스 이벤트
     const onAddImage = (data: ImageBox) => setImageBoxes(prev => [...prev, data]);
@@ -56,19 +68,19 @@ export const useObjectManager = (socket: Socket | null) => {
 
     // 클린업 함수
     return () => {
-      socket.off("init", onInit);
-      socket.off("addTextBox", onAddTextBox);
-      socket.off("updateTextBox", onUpdateTextBox);
-      socket.off("moveTextBox", onMoveTextBox);
-      socket.off("removeTextBox", onRemoveTextBox);
-      socket.off("addVote", onAddVote);
-      socket.off("updateVote", onUpdateVote);
-      socket.off("moveVote", onMoveVote);
-      socket.off("removeVote", onRemoveVote);
-      socket.off("choiceVote", onChoiceVote);
-      socket.off("addImage", onAddImage);
-      socket.off("moveImage", onMoveImage);
-      socket.off("removeImage", onRemoveImage);
+      socket.off("init");
+      socket.off("addTextBox");
+      socket.off("updateTextBox");
+      socket.off("moveTextBox");
+      socket.off("removeTextBox");
+      socket.off("addVote");
+      socket.off("updateVote");
+      socket.off("moveVote");
+      socket.off("removeVote");
+      socket.off("choiceVote");
+      socket.off("addImage");
+      socket.off("moveImage");
+      socket.off("removeImage");
     };
   }, [socket]);
 

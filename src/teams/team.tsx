@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Draggable from 'react-draggable';
 
@@ -11,13 +12,13 @@ import TextBoxes from "./components/textBox";
 import VoteBoxes from "./components/voteBox";
 import ImageBoxes from "./components/ImageBox";
 
-// ✅ 스타일 파일 import
+// 스타일 파일 import
 import {
   Container, Content, SidebarContainer, Logo, SidebarTitle, ProjectSection, ProjectTitle, DropdownArrow,
   MeetingList, MeetingItem, MeetingDate, SubItem, SidebarFooter, MainArea, FloatingToolbar, ToolIcon,
   ToolbarDivider, ColorCircle, FloatingButtonWrap, CreateMenu, CreateMenuButton, FloatingButton,
   ColorPicker, SelectBox, ImageIcon, PenIcon, Cursor
-} from './Team.styles.tsx';
+} from './Team.styles';
 
 // 상수 정의
 const FONT_FAMILIES = [ 'Nanum Gothic', 'Nanum Myeongjo', 'Nanum Pen Script', 'BM Jua', 'Gungseo', 'Arial' ];
@@ -32,14 +33,17 @@ const Teams: React.FC = () => {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // UI 상태
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [isTextMode, setIsTextMode] = useState(false);
   const [isVoteCreateMode, setIsVoteCreateMode] = useState(false);
 
+  // 훅 호출
   const { socket } = useSocketManager(teamId, userId);
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, teamId, userId);
   const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
 
+  // 포커스 및 스타일 상태
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [focusedVoteIdx, setFocusedVoteIdx] = useState<number | null>(null);
   const [focusedImageIdx, setFocusedImageIdx] = useState<number | null>(null);
