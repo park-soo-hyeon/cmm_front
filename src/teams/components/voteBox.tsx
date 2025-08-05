@@ -40,6 +40,7 @@ const VoteBoxes: React.FC<VoteBoxesProps> = ({
   draggingIdxRef.current = draggingIdx;
   const resizingIdxRef = useRef(resizingIdx);
   resizingIdxRef.current = resizingIdx;
+  
 
   const bringToFront = (idx: number) => {
     setVoteBoxes(prev => {
@@ -177,3 +178,4 @@ const VoteItemBtn = styled.button<{ selected: boolean }>` min-width: 60px; paddi
 const VoteVoterCount = styled.div` position: absolute; right: 7px; top: 10px; font-size: 12px; color: #888; background: rgba(255,255,255,0.8); padding: 2px 8px; border-radius: 8px; `;
 
 export default VoteBoxes;
+

@@ -11,8 +11,6 @@ import { VideoGrid } from './components/VideoGrid';
 import TextBoxes from "./components/textBox";
 import VoteBoxes from "./components/voteBox";
 import ImageBoxes from "./components/ImageBox";
-
-// 스타일 파일 import
 import {
   Container, Content, SidebarContainer, Logo, SidebarTitle, ProjectSection, ProjectTitle, DropdownArrow,
   MeetingList, MeetingItem, MeetingDate, SubItem, SidebarFooter, MainArea, FloatingToolbar, ToolIcon,
@@ -33,17 +31,16 @@ const Teams: React.FC = () => {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // UI 상태
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [isTextMode, setIsTextMode] = useState(false);
   const [isVoteCreateMode, setIsVoteCreateMode] = useState(false);
 
-  // 훅 호출
   const { socket } = useSocketManager(teamId, userId);
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, teamId, userId);
+  
+  // ✅ useObjectManager는 이제 서버 데이터 수신만 담당
   const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
 
-  // 포커스 및 스타일 상태
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [focusedVoteIdx, setFocusedVoteIdx] = useState<number | null>(null);
   const [focusedImageIdx, setFocusedImageIdx] = useState<number | null>(null);
@@ -85,9 +82,7 @@ const Teams: React.FC = () => {
     return Math.max(textMax, voteMax, imageMax);
   };
   
-  const handleImageButtonClick = () => {
-      fileInputRef.current?.click();
-  };
+  const handleImageButtonClick = () => fileInputRef.current?.click();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,7 +96,7 @@ const Teams: React.FC = () => {
     formData.append("cLocate", JSON.stringify({ x, y }));
     formData.append("cScale", JSON.stringify({ width, height }));
     try {
-      const res = await fetch(SOCKET_URL + "/api/image/upload", { method: "POST", body: formData });
+      const res = await fetch(`${SOCKET_URL}/api/image/upload`, { method: "POST", body: formData });
       if (!res.ok) throw new Error("이미지 업로드 실패: " + res.status);
     } catch (err) {
       alert("이미지 업로드 실패: " + err);
@@ -110,8 +105,8 @@ const Teams: React.FC = () => {
   };
 
   const handleCreateVoteBoxButton = () => {
-      setShowCreateMenu(false);
-      setIsVoteCreateMode(true);
+    setShowCreateMenu(false);
+    setIsVoteCreateMode(true);
   };
   
   const handleStyleChange = (type: string, value: string | number) => {
@@ -124,6 +119,7 @@ const Teams: React.FC = () => {
         size: type === 'fontSize' ? value as number : currentBox.size,
         font: type === 'fontFamily' ? value as string : currentBox.font,
     };
+    // ✅ 즉각적인 UI 피드백을 위해 setTextBoxes를 직접 호출
     setTextBoxes(prev => prev.map((box, i) => i === focusedIdx ? updatedBox : box));
     socket.emit("textEvent", {
         fnc: "update", node: updatedBox.node, type: "text",
@@ -180,11 +176,8 @@ const Teams: React.FC = () => {
               <FloatingToolbar ref={toolbarRef}>
                 {focusedIdx === null ? (
                   <>
-                    <ToolIcon onClick={() => setIsTextMode((prev) => !prev)} style={{ color: isTextMode ? "#6b5b95" : undefined }} title="텍스트 상자 생성 모드">T</ToolIcon>
-                    <ToolIcon onClick={handleImageButtonClick}>
-                      <ImageIcon />
-                      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} />
-                    </ToolIcon>
+                    <ToolIcon onClick={(e) => { e.stopPropagation(); setIsTextMode(prev => !prev); }} style={{ color: isTextMode ? "#6b5b95" : undefined }} title="텍스트 상자 생성 모드">T</ToolIcon>
+                    <ToolIcon onClick={handleImageButtonClick}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
                     <ToolIcon><PenIcon /></ToolIcon>
                     <ToolbarDivider />
                     <ToolIcon>+</ToolIcon>
@@ -196,13 +189,7 @@ const Teams: React.FC = () => {
                 ) : (
                   <>
                     <ColorPicker type="color" value={textColor} onChange={(e) => handleStyleChange('color', e.target.value)} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <input type="number" min={8} max={64} value={fontSizeInput} 
-                        onChange={e => setFontSizeInput(e.target.value)} 
-                        onBlur={e => handleStyleChange('fontSize', Number(e.target.value))}
-                        style={{ width: 40, textAlign: "center" }} />
-                      <span style={{ marginLeft: 2 }}>px</span>
-                    </div>
+                    <div><input type="number" min={8} max={64} value={fontSizeInput} onChange={e => setFontSizeInput(e.target.value)} onBlur={e => handleStyleChange('fontSize', Number(e.target.value))} style={{ width: 40, textAlign: "center" }} /><span>px</span></div>
                     <SelectBox value={fontFamily} onChange={(e) => handleStyleChange('fontFamily', e.target.value)}>
                         {FONT_FAMILIES.map(font => <option key={font} value={font}>{font}</option>)}
                     </SelectBox>
@@ -230,19 +217,14 @@ const Teams: React.FC = () => {
                 getMaxZIndex={getMaxZIndex}
             />
 
-            {Object.entries(cursors).map(([id, { x, y }]) => (
-                <Cursor key={id} x={x} y={y} />
-            ))}
-
+            {Object.entries(cursors).map(([id, { x, y }]) => (<Cursor key={id} x={x} y={y} />))}
             <VideoGrid localStream={localStream} remoteStreams={remoteStreams} />
 
             <FloatingButtonWrap>
                 {showCreateMenu && (
                 <CreateMenu>
                     <CreateMenuButton onClick={handleCreateVoteBoxButton}>투표</CreateMenuButton>
-                    <CreateMenuButton onClick={inCall ? handleEndCall : handleStartCall}>
-                    {inCall ? '통화 종료' : '화상통화'}
-                    </CreateMenuButton>
+                    <CreateMenuButton onClick={inCall ? handleEndCall : handleStartCall}>{inCall ? '통화 종료' : '화상통화'}</CreateMenuButton>
                 </CreateMenu>
                 )}
                 <FloatingButton onClick={() => setShowCreateMenu((v) => !v)}>+</FloatingButton>
