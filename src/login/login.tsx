@@ -29,7 +29,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`spring/api/users/login`, {
+      const response = await fetch(API_URL+`/spring/api/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

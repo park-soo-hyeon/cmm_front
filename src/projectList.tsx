@@ -39,7 +39,7 @@ const ProjectList: React.FC = () => {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const response = await fetch(`spring/api/teams/list`, {
+        const response = await fetch(API_URL+`/spring/api/teams/list`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ uid: userEmail }),

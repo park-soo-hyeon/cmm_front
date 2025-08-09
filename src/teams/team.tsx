@@ -21,7 +21,7 @@ import {
 // 상수 정의
 const FONT_FAMILIES = [ 'Nanum Gothic', 'Nanum Myeongjo', 'Nanum Pen Script', 'BM Jua', 'Gungseo', 'Arial' ];
 const PROJECT_ID = "1";
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "wss://default.domain";
+const SOCKET_URL = "https://blanksync.kro.kr";
 
 const Teams: React.FC = () => {
   const { state } = useLocation();
@@ -38,7 +38,7 @@ const Teams: React.FC = () => {
   const { socket } = useSocketManager(teamId, userId);
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, teamId, userId);
   
-  // ✅ useObjectManager는 이제 서버 데이터 수신만 담당
+  // ✅ [수정] useObjectManager에서 상태와 '상태 변경 함수'를 모두 가져옵니다.
   const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
 
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
@@ -96,7 +96,7 @@ const Teams: React.FC = () => {
     formData.append("cLocate", JSON.stringify({ x, y }));
     formData.append("cScale", JSON.stringify({ width, height }));
     try {
-      const res = await fetch(`${SOCKET_URL}/api/image/upload`, { method: "POST", body: formData });
+      const res = await fetch(`${SOCKET_URL}/node/api/image/upload`, { method: "POST", body: formData });
       if (!res.ok) throw new Error("이미지 업로드 실패: " + res.status);
     } catch (err) {
       alert("이미지 업로드 실패: " + err);
@@ -119,7 +119,6 @@ const Teams: React.FC = () => {
         size: type === 'fontSize' ? value as number : currentBox.size,
         font: type === 'fontFamily' ? value as string : currentBox.font,
     };
-    // ✅ 즉각적인 UI 피드백을 위해 setTextBoxes를 직접 호출
     setTextBoxes(prev => prev.map((box, i) => i === focusedIdx ? updatedBox : box));
     socket.emit("textEvent", {
         fnc: "update", node: updatedBox.node, type: "text",
@@ -198,6 +197,7 @@ const Teams: React.FC = () => {
               </FloatingToolbar>
             </Draggable>
             
+            {/* ✅ [수정] 각 컴포넌트에 상태와 상태 변경 함수(setter)를 모두 넘겨줍니다. */}
             <TextBoxes
                 textBoxes={textBoxes} setTextBoxes={setTextBoxes}
                 focusedIdx={focusedIdx} setFocusedIdx={setFocusedIdx}
@@ -234,5 +234,4 @@ const Teams: React.FC = () => {
     </Container>
   );
 };
-
 export default Teams;

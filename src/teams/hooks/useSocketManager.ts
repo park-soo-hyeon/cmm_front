@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "wss://default.domain";
+const SOCKET_URL = "wss://blanksync.kro.kr";
 
 export const useSocketManager = (teamId: string, userId: string) => {
   const socketRef = useRef<Socket | null>(null);
