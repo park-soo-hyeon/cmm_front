@@ -9,32 +9,33 @@ export const useSocketManager = (teamId: string, userId: string) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!teamId || !userId) return;
+  if (!teamId || !userId) return;
 
-    const newSocket = io(SOCKET_URL, {
-      path: '/node/socket.io',
-      transports: ["websocket"]
+  const newSocket = io(SOCKET_URL, {
+    path: '/node/socket.io',
+    transports: ["websocket"]
+  });
+
+  // ✅ 즉시 socket 상태 설정
+  setSocket(newSocket);
+
+  newSocket.on("connect", () => {
+    console.log("Socket connected!", newSocket.id);
+    setIsConnected(true);
+    
+    // ✅ 서버가 기대하는 형식으로 이벤트 전송
+    newSocket.emit("join-room", { 
+      uId: userId, 
+      tId: teamId, 
+      pId: "1" // PROJECT_ID
     });
+  });
 
-    newSocket.on("connect", () => {
-      console.log("Socket connected!", newSocket.id);
-      // ✅ [수정] setSocket을 호출하여 컴포넌트 리렌더링을 유발합니다.
-      setSocket(newSocket);
-      setIsConnected(true);
-      newSocket.emit("join-room", { tId: teamId, uId: userId });
-    });
-
-    newSocket.on("disconnect", () => {
-      console.log("Socket disconnected.");
-      setIsConnected(false);
-      setSocket(null);
-    });
-
-    return () => {
-      console.log("Cleaning up socket connection.");
-      newSocket.disconnect();
-    };
-  }, [teamId, userId]);
+  return () => {
+    newSocket.disconnect();
+    setSocket(null);
+  };
+}, [teamId, userId]);
 
   // ✅ [수정] useState로 관리되는 socket 객체를 반환합니다.
   return { socket, isConnected };
