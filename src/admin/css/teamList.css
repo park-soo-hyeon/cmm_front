@@ -1,0 +1,146 @@
+/* 컬러 팔레트를 CSS 변수로 정의 */
+:root {
+  --bg-color: #EDE9F2;
+  --card-color: #FFFFFF;
+  --container-bg-color: #E8E7F2;
+  --accent-color: #B8B6F2;
+  --accent-dark-color: #545159;
+  --text-color: #3B3740;
+  --sub-text-color: #A19FA6;
+  --border-color: #E3DCF2;
+  --action-color: #FF6B6B;
+}
+
+/* --- 1. 페이지 전체 레이아웃 컨테이너 (추가) --- */
+.admin-container {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+}
+
+/* --- 기본 페이지 스타일 --- */
+.page-container {
+  /* background-color는 부모에게 넘겨주고 제거 */
+  /* background-color: var(--bg-color); */
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  color: var(--text-color);
+}
+
+.main-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: var(--accent-dark-color);
+}
+
+/* --- 리스트 공통 스타일 --- */
+.list-container {
+  background-color: var(--container-bg-color);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.list-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--text-color);
+}
+
+/* --- 팀 리스트 행 스타일 (Grid) --- */
+.list-header,
+.team-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 2fr 1.5fr;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.list-header {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-dark-color);
+}
+
+.team-item-container {
+  background-color: var(--card-color);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden; /* 애니메이션을 위해 추가 */
+}
+
+.team-row {
+  min-height: 60px;
+  font-size: 15px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 15px;
+}
+
+.action-link {
+  color: var(--action-color);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--sub-text-color);
+  transition: transform 0.3s ease;
+}
+
+.toggle-button.expanded {
+  transform: rotate(180deg); /* 버튼 회전 애니메이션 */
+}
+
+/* --- 펼쳐지는 상세 정보 섹션 스타일 --- */
+.details-section {
+  padding: 10px 20px 20px 20px;
+  border-top: 1px solid var(--border-color);
+  background-color: #fafafa; /* 상세정보 배경색을 약간 다르게 */
+  animation: fadeIn 0.5s ease; /* 나타나는 애니메이션 */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.details-header,
+.details-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr; /* 팀원명, 역할 2단 */
+  padding: 8px 20px;
+  margin-left: calc(1fr + 20px); /* 팀 아이디 컬럼만큼 들여쓰기 */
+}
+
+.details-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sub-text-color);
+}
+
+.details-row {
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.no-members {
+  text-align: center;
+  padding: 20px;
+  color: var(--sub-text-color);
+  font-size: 14px;
+}

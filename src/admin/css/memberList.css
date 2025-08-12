@@ -1,0 +1,111 @@
+/* 컬러 팔레트를 CSS 변수로 정의 */
+:root {
+  --bg-color: #EDE9F2;
+  --card-color: #FFFFFF; /* 행 배경은 흰색으로 */
+  --container-bg-color: #E8E7F2; /* 리스트 전체 배경 */
+  --accent-color: #B8B6F2;
+  --accent-dark-color: #545159;
+  --text-color: #3B3740;
+  --sub-text-color: #A19FA6;
+  --border-color: #E3DCF2;
+  --action-color: #FF6B6B; /* 수정/삭제 링크 색상 */
+}
+
+/* --- 1. 페이지 전체 레이아웃 컨테이너 (추가) --- */
+.admin-container {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+}
+
+/* 전체 페이지 배경 및 폰트 설정 */
+/* --- 2. 기존 페이지 컨테이너 수정 --- */
+.member-page {
+  /* background-color는 부모에게 넘겨주고 제거 */
+  /* background-color: var(--bg-color); */
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  color: var(--text-color);
+}
+
+/* 페이지 메인 타이틀 */
+.main-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: var(--accent-dark-color);
+}
+
+/* 리스트 전체를 감싸는 컨테이너 */
+.list-container {
+  background-color: var(--container-bg-color);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.list-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--text-color);
+}
+
+/* Grid 레이아웃 설정 */
+.list-header,
+.list-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 2fr 1.5fr; /* 4개 컬럼 비율 설정 */
+  align-items: center;
+  padding: 0 20px;
+}
+
+/* 테이블 헤더 스타일 */
+.list-header {
+  margin-bottom: 10px;
+}
+
+.header-item {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-dark-color);
+}
+
+/* 테이블 각 행 스타일 */
+.list-row {
+  background-color: var(--card-color);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  min-height: 60px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease-in-out;
+}
+
+.list-row:hover {
+    transform: translateY(-2px);
+}
+
+.row-item {
+  font-size: 15px;
+  color: var(--text-color);
+}
+
+/* 수정/삭제 링크 */
+.action-link {
+  color: var(--action-color);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.action-link:hover {
+  text-decoration: underline;
+}
+
+/* 컬럼별 텍스트 정렬 */
+.list-header .header-item:last-child,
+.list-row .row-item:last-child {
+  text-align: right;
+}
