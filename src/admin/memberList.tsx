@@ -1,50 +1,192 @@
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import './css/memberList.css';
 import Header from '../header';
 
 // API 주소
 const API_URL = process.env.REACT_APP_API_URL;
 
-// --- 1. 서버에서 받아올 회원 데이터의 타입을 정의 ---
+// upassword가 null일 수 있음을 타입에 명시
 interface MemberInfo {
   uid: string;
   uname: string;
+  upassword: string | null; 
+}
+
+interface NewUserInfo {
+  uid: string;
   upassword: string;
+  uname: string;
+  role: string;
 }
 
 const MemberList = () => {
-  // --- 2. State 선언 ---
-  const [memberList, setMemberList] = useState<MemberInfo[]>([]); // 회원 목록을 저장할 state
-  const [loading, setLoading] = useState(true); // 로딩 상태
+  const [memberList, setMemberList] = useState<MemberInfo[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // --- 3. 서버에서 데이터를 가져오는 useEffect ---
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const [newUser, setNewUser] = useState<NewUserInfo>({
+    uid: '',
+    upassword: '',
+    uname: '',
+    role: 'user', // 역할 기본값 설정
+  });
+
+  // 수정할 회원 정보를 담는 state
+  const [editingMember, setEditingMember] = useState<MemberInfo | null>(null);
+  const [editedUname, setEditedUname] = useState('');
+  const [editedUpassword, setEditedUpassword] = useState(''); // 새 비밀번호 입력용
+
+  const fetchMembers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/spring/api/admin/user`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error('서버 응답에 실패했습니다.');
+      const data: MemberInfo[] = await response.json();
+      setMemberList(data);
+    } catch (error) {
+      console.error("회원 목록을 가져오는 중 오류 발생:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 서버에서 데이터를 가져오는 useEffect
   useEffect(() => {
-    const fetchMembers = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`${API_URL}/spring/api/admin/user`, {
-          method: "POST",
-          // 필요 시 headers, body 추가
-        });
+    fetchMembers();
+  }, []); // 처음 마운트될 때만 호출
 
-        if (!response.ok) {
-          throw new Error('서버 응답에 실패했습니다.');
-        }
+  // 모달 입력 값 변경 핸들러
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewUser(prevState => ({
+      ...prevState,
+      [name]: value,
+    }));
+  };
 
-        const data: MemberInfo[] = await response.json();
-        setMemberList(data);
+  // 모달 닫기 함수
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
+    // 모달을 닫을 때 입력 필드를 초기화합니다.
+    setNewUser({ uid: '', upassword: '', uname: '', role: 'user' });
+  };
 
-      } catch (error) {
-        console.error("회원 목록을 가져오는 중 오류 발생:", error);
-      } finally {
-        setLoading(false);
+  // 새 회원 추가 함수
+  const handleAddUser = async () => {
+    // 간단한 유효성 검사
+    if (!newUser.uid || !newUser.upassword || !newUser.uname || !newUser.role) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    try {
+      // 서버에 새 회원 정보 전송 (요청하신 엔드포인트로 수정)
+      const response = await fetch(`${API_URL}/spring/api/admin/user/new`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newUser), // newUser state를 JSON으로 변환하여 전송
+      });
+
+      if (!response.ok) {
+        throw new Error('회원 추가에 실패했습니다.');
       }
+
+      await fetchMembers(); 
+
+      alert('새로운 회원이 추가되었습니다.');
+      handleCloseAddModal(); // 모달 닫기
+
+    } catch (error) {
+      console.error('회원 추가 중 오류 발생:', error);
+      alert('회원 추가 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 수정 모달 열기
+  const handleOpenEditModal = (member: MemberInfo) => {
+    setEditingMember(member);
+    setEditedUname(member.uname);
+    // ✨ 실제 비밀번호 값으로 초기 설정 (null일 경우 빈 문자열로)
+    setEditedUpassword(member.upassword ?? ''); 
+    setIsEditModalOpen(true);
+  };
+
+  // 수정 모달 닫기
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingMember(null);
+  };
+
+  // 수정 내용 저장
+  const handleUpdateUser = async () => {
+    if (!editingMember) return;
+
+    // 서버에 보낼 데이터 구성
+    const payload = {
+      uid: editingMember.uid,
+      uname: editedUname,
+      // 비밀번호 입력창이 비어있으면 null, 아니면 입력된 값을 전송
+      upassword: editedUpassword === '' ? null : editedUpassword,
     };
 
-    fetchMembers();
-  }, []); // 컴포넌트가 처음 렌더링될 때 한 번만 실행
+    try {
+      // 서버로 수정 요청 전송 (기존과 동일)
+      const response = await fetch(`${API_URL}/spring/api/users/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-  // 로딩 중일 때 표시할 UI
+      if (!response.ok) throw new Error('회원 정보 수정에 실패했습니다.');
+
+      // --- ✨ 2. 성공 시 목록 UI 업데이트 로직 수정 ---
+      // 비밀번호를 수정했을 수도 있으므로, 목록 전체를 다시 불러와 최신 상태를 유지
+      await fetchMembers();
+
+      alert('회원 정보가 수정되었습니다.');
+      handleCloseEditModal();
+
+    } catch (error) {
+      console.error('회원 정보 수정 중 오류 발생:', error);
+      alert('회원 정보 수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDeleteUser = async (member: MemberInfo) => {
+    if (!window.confirm(`'${member.uname}'(${member.uid}) 회원을 정말로 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/spring/api/admin/user/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // 3. 프론트엔드의 uid 값을 body에 담아 서버로 전송합니다.
+        body: JSON.stringify({ uid: member.uid }),
+      });
+
+      if (!response.ok) {
+        throw new Error('회원 삭제에 실패했습니다.');
+      }
+      
+      // 4. 성공 시 화면 목록에서 해당 회원을 즉시 제거합니다.
+      setMemberList(prevList => prevList.filter(m => m.uid !== member.uid));
+      alert('회원이 삭제되었습니다.');
+
+    } catch (error) {
+      console.error('회원 삭제 중 오류 발생:', error);
+      alert('회원 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 로딩 UI
   if (loading) {
     return (
       <div className="admin-container">
@@ -60,38 +202,259 @@ const MemberList = () => {
     <div className="admin-container">
       <Header />
       <div className="member-page">
-        <h1 className="main-title">회원 관리 페이지</h1>
-
         <div className="list-container">
-          <h2 className="list-title">회원 리스트</h2>
+          <ListHeaderContainer>
+            <h2 className="list-title">회원 리스트</h2>
+            <AddButton onClick={() => setIsAddModalOpen(true)}>+ 회원 추가</AddButton>
+          </ListHeaderContainer>
 
-          {/* --- 테이블 헤더 --- */}
-          <div className="list-header">
-            <div className="header-item">회원 아이디</div>
-            <div className="header-item">회원 이름</div>
-            <div className="header-item">비밀번호</div>
-            <div className="header-item"></div>
+          <div className="member-list-header">
+            <div>회원 아이디</div>
+            <div>회원 이름</div>
+            <div>비밀번호</div>
+            <div></div>
           </div>
 
-          {/* --- 테이블 바디 (회원 목록) --- */}
           <div className="list-body">
-            {/* --- 4. 목업 데이터 대신 state의 memberList를 사용 --- */}
-            {memberList.map((member) => (
-              <div key={member.uid} className="list-row">
-                {/* --- 5. 서버에서 받은 데이터로 UI 표시 --- */}
-                <div className="row-item">{member.uid}</div>
-                <div className="row-item">{member.uname}</div>
-                <div className="row-item">••••••••</div>
-                <div className="row-item">
-                  <a href="#" className="action-link">수정/삭제</a>
+            {memberList.map((member) => {
+              const passLength = member.upassword?.length;
+              const passwordMask = '•'.repeat(passLength && passLength > 0 ? passLength : 8);
+
+              return (
+                <div key={member.uid} className="member-list-row">
+                  <div>{member.uid}</div>
+                  <div>{member.uname}</div>
+                  <div>{passwordMask}</div>
+                  <ActionLinksContainer>
+                    {/* --- 4. 수정/삭제 링크 분리 및 핸들러 연결 --- */}
+                    <ActionLink onClick={() => handleOpenEditModal(member)}>수정</ActionLink>
+                    <ActionLink onClick={() => handleDeleteUser(member)}>삭제</ActionLink>
+                  </ActionLinksContainer>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
+      {/* --- 4. 회원 추가 모달 UI 렌더링 --- */}
+      {isAddModalOpen && (
+        <ModalBackdrop onClick={handleCloseAddModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <h2>신규 회원 추가</h2>
+              <CloseButton onClick={handleCloseAddModal}>&times;</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <InputGroup>
+                <label>아이디 (uid)</label>
+                <input name="uid" value={newUser.uid} onChange={handleInputChange} />
+              </InputGroup>
+              <InputGroup>
+                <label>비밀번호 (upassword)</label>
+                <input name="upassword" type="password" value={newUser.upassword} onChange={handleInputChange} />
+              </InputGroup>
+              <InputGroup>
+                <label>이름 (uname)</label>
+                <input name="uname" value={newUser.uname} onChange={handleInputChange} />
+              </InputGroup>
+              <InputGroup>
+                <label>역할 (role)</label>
+                <input name="role" value={newUser.role} onChange={handleInputChange} />
+              </InputGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={handleCloseAddModal}>취소</ModalButton>
+              <ModalButton primary onClick={handleAddUser}>추가</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalBackdrop>
+        
+      )}
+      {/* --- 5. 회원 수정 모달 UI 렌더링 추가 --- */}
+      {isEditModalOpen && editingMember && (
+        <ModalBackdrop onClick={handleCloseEditModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <h2>회원 정보 수정</h2>
+              <CloseButton onClick={handleCloseEditModal}>&times;</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <InputGroup>
+                <label>아이디 (uid)</label>
+                <input value={editingMember.uid} disabled />
+              </InputGroup>
+              <InputGroup>
+                <label>이름 (uname)</label>
+                <input value={editedUname} onChange={(e) => setEditedUname(e.target.value)} />
+              </InputGroup>
+              <InputGroup>
+                <label>새 비밀번호 (upassword)</label>
+                <input 
+                  type="text" 
+                  value={editedUpassword} 
+                  onChange={(e) => setEditedUpassword(e.target.value)}
+                  placeholder="변경할 경우에만 입력하세요"
+                />
+              </InputGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={handleCloseEditModal}>취소</ModalButton>
+              <ModalButton primary onClick={handleUpdateUser}>저장</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalBackdrop>
+      )}
     </div>
   );
 };
 
 export default MemberList;
+
+const COLOR = {
+  bg: "#EDE9F2",        // 전체 배경
+  card: "#F2F2F2",      // 카드/박스 배경
+  accent: "#B8B6F2",    // 주요 버튼/포인트
+  accentDark: "#545159",// 버튼 hover 등
+  text: "#3B3740",      // 기본 텍스트
+  subText: "#A19FA6",   // 서브 텍스트
+  logo: "#C6C4F2",      // 로고/포인트
+  imgBg: "#D1D0F2",     // 이미지 영역 배경
+  imgShadow: "#CEDEF2", // 이미지 그림자
+  border: "#E3DCF2",    // 경계선/구분선
+};
+
+const ModalBackdrop = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+`;
+
+const ModalHeader = styled.div`
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #aaa;
+  &:hover {
+    color: #000;
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+`;
+
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+  }
+  input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    &:disabled {
+      background-color: #f5f5f5;
+      cursor: not-allowed;
+    }
+  }
+`;
+
+const ModalFooter = styled.div`
+  padding: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+`;
+
+const ModalButton = styled.button<{ primary?: boolean }>`
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: 1px solid ${props => props.primary ? COLOR.accent : '#ccc'};
+  background-color: ${props => props.primary ? COLOR.accent : '#fff'};
+  color: ${props => props.primary ? '#fff' : '#333'};
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+const ListHeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const AddButton = styled.button`
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background-color: ${COLOR.accent};
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  &:hover {
+    background-color: ${COLOR.accentDark};
+  }
+`;
+
+const ActionLinksContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+`;
+
+const ActionLink = styled.span`
+  color: var(--action-color);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
+  }
+`;

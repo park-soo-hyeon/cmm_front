@@ -1,27 +1,24 @@
-/* 컬러 팔레트를 CSS 변수로 정의 */
+/* memberList.css */
+
+/* 컬러 팔레트 및 기본 페이지 스타일 */
 :root {
   --bg-color: #EDE9F2;
-  --card-color: #FFFFFF; /* 행 배경은 흰색으로 */
-  --container-bg-color: #E8E7F2; /* 리스트 전체 배경 */
+  --card-color: #FFFFFF;
+  --container-bg-color: #E8E7F2;
   --accent-color: #B8B6F2;
   --accent-dark-color: #545159;
   --text-color: #3B3740;
   --sub-text-color: #A19FA6;
   --border-color: #E3DCF2;
-  --action-color: #FF6B6B; /* 수정/삭제 링크 색상 */
+  --action-color: #FF6B6B;
 }
 
-/* --- 1. 페이지 전체 레이아웃 컨테이너 (추가) --- */
 .admin-container {
   min-height: 100vh;
   background-color: var(--bg-color);
 }
 
-/* 전체 페이지 배경 및 폰트 설정 */
-/* --- 2. 기존 페이지 컨테이너 수정 --- */
 .member-page {
-  /* background-color는 부모에게 넘겨주고 제거 */
-  /* background-color: var(--bg-color); */
   max-width: 900px;
   margin: 0 auto;
   padding: 40px;
@@ -29,7 +26,6 @@
   color: var(--text-color);
 }
 
-/* 페이지 메인 타이틀 */
 .main-title {
   font-size: 28px;
   font-weight: 700;
@@ -37,7 +33,6 @@
   color: var(--accent-dark-color);
 }
 
-/* 리스트 전체를 감싸는 컨테이너 */
 .list-container {
   background-color: var(--container-bg-color);
   border-radius: 12px;
@@ -52,41 +47,75 @@
   color: var(--text-color);
 }
 
-/* Grid 레이아웃 설정 */
-.list-header,
-.list-row {
-  display: grid;
-  grid-template-columns: 1fr 2fr 2fr 1.5fr; /* 4개 컬럼 비율 설정 */
+.member-list-header,
+.member-list-row {
+  display: flex;
   align-items: center;
   padding: 0 20px;
+  gap: 20px;
 }
 
-/* 테이블 헤더 스타일 */
-.list-header {
+.member-list-header {
   margin-bottom: 10px;
-}
-
-.header-item {
   font-size: 14px;
   font-weight: 600;
   color: var(--accent-dark-color);
 }
 
-/* 테이블 각 행 스타일 */
-.list-row {
+/* 행 스타일 */
+.member-list-row {
   background-color: var(--card-color);
   border-radius: 8px;
   margin-bottom: 10px;
   min-height: 60px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease-in-out;
+  font-size: 15px;
+  color: var(--text-color);
 }
 
 .list-row:hover {
-    transform: translateY(-2px);
+  transform: translateY(-2px);
 }
 
-.row-item {
+/* 헤더와 행의 각 칸(자식 div)에 대한 Flex 비율 설정 */
+.member-list-header > div,
+.member-list-row > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-list-header > div:nth-child(1),
+.member-list-row > div:nth-child(1) {
+  flex: 2.5; /* 회원 아이디 */
+}
+
+.member-list-header > div:nth-child(2),
+.member-list-row > div:nth-child(2) {
+  flex: 1.5; /* 회원 이름 */
+}
+
+.member-list-header > div:nth-child(3),
+.member-list-row > div:nth-child(3) {
+  flex: 2;   /* 비밀번호 */
+}
+
+.member-list-header > div:nth-child(4),
+.member-list-row > div:nth-child(4) {
+  flex: 1;   /* 수정/삭제 */
+  text-align: right;
+  overflow: visible;
+}
+
+/* 헤더 칸 텍스트 스타일 */
+.header-item, .list-header > div {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-dark-color);
+}
+
+/* 행 칸 텍스트 스타일 */
+.row-item, .list-row > div {
   font-size: 15px;
   color: var(--text-color);
 }
@@ -102,10 +131,4 @@
 
 .action-link:hover {
   text-decoration: underline;
-}
-
-/* 컬럼별 텍스트 정렬 */
-.list-header .header-item:last-child,
-.list-row .row-item:last-child {
-  text-align: right;
 }
