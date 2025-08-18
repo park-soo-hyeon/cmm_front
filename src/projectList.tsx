@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
+
+type TeamsResponse = {
+  uname: string;
+  team: TeamData[];
+};
 
 type TeamData = {
   tid: number;
@@ -30,35 +35,44 @@ const ProjectList: React.FC = () => {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [showMessage, setShowMessage] = useState(false);
   const [teams, setTeams] = useState<TeamData[]>([]);
+  const [userName, setUserName] = useState<string>("")
   const userEmail = localStorage.getItem("userEmail");
   const mailIconRef = useRef<HTMLSpanElement>(null);
   const [editingTeam, setEditingTeam] = useState<EditingTeamInfo | null>(null);
   const modificationMenuRef = useRef<HTMLDivElement>(null);
 
   // 팀 목록 가져오기
-  useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const response = await fetch(API_URL+`/spring/api/teams/list`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid: userEmail }),
-        });
+  const fetchTeams = useCallback(async () => {
+    if (!userEmail) return; // userEmail이 없으면 실행하지 않음
+    try {
+      const response = await fetch(`${API_URL}/spring/api/teams/list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: userEmail }),
+      });
 
-        if (!response.ok) {
-          throw new Error("팀 목록을 불러오는데 실패했습니다.");
-        }
-
-        const data: TeamData[] = await response.json();
-        
-        setTeams(data);
-      } catch (error) {
-        console.error("Error fetching teams:", error);
+      if (!response.ok) {
+        throw new Error("팀 목록을 불러오는데 실패했습니다.");
       }
-    };
+      
+      // Spring에서 보내주는 새로운 데이터 구조({ uname, teamList })에 맞게 타입을 지정합니다.
+      const data: TeamsResponse = await response.json();
 
+      console.log("서버로부터 받은 데이터:", data);
+
+      // API 응답에서 받은 데이터로 상태를 업데이트합니다.
+      setUserName(data.uname);    // 사용자 이름 상태 업데이트
+      setTeams(data.team || []);    // 팀 목록 상태 업데이트
+
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+    }
+  }, [userEmail]); // userEmail이 변경될 때만 함수가 재생성됨
+
+  useEffect(() => {
     fetchTeams();
-  }, [userEmail]);
+  }, [fetchTeams]);
+
 
   // 메뉴 외부 클릭 시 메뉴 닫기
   useEffect(() => {
@@ -77,7 +91,7 @@ const ProjectList: React.FC = () => {
   const handleMailClick = async () => {
     // 서버에 메시지 요청
     try {
-      const response = await fetch(`spring/api/users/message`, {
+      const response = await fetch(`${API_URL}/spring/api/users/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: userEmail }),
@@ -112,20 +126,23 @@ const ProjectList: React.FC = () => {
       return;
     }
     try {
-      const response = await fetch(`spring/api/users/message/choice`, {
+      const response = await fetch(`${API_URL}/spring/api/users/message/choice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // --- 이 부분이 요청에 맞게 수정되었습니다 ---
         body: JSON.stringify({
           tid: message.tid,        // 팀 ID
-          uid: message.uid,        // 초대를 보낸 사람의 ID
-          sendUid: userEmail,      // 응답하는 사람(현재 로그인한 유저)의 ID
+          uid: message.senduid,    // 초대를 보낸 사람의 ID
+          senduid: userEmail,      // 응답하는 사람(현재 로그인한 유저)의 ID
           bool: choice,            // 수락/거절 여부
         }),
       });
       
       if (!response.ok) {
         throw new Error(`서버 오류: ${response.status}`);
+      }
+
+      if (choice) {
+        await fetchTeams();
       }
 
       alert(choice ? "팀 초대를 수락하였습니다." : "팀 초대를 거절하였습니다.");
@@ -145,7 +162,7 @@ const ProjectList: React.FC = () => {
 
     try {
       // API 서버에 메시지 삭제 요청
-      const response = await fetch(`spring/api/users/message/delete`, {
+      const response = await fetch(`${API_URL}/spring/api/users/message/delete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -178,19 +195,24 @@ const ProjectList: React.FC = () => {
     });
   };
 
-  // 팀원 수정 핸들러 (실제 로직 구현 필요)
+  // 팀장 페이지로 이동하는 핸들러
   const handleEditMembers = (tid: number) => {
-    alert(`${tid}번 팀의 팀원을 수정합니다.`);
+    // navigate를 사용하여 state와 함께 페이지 이동
+    navigate("/leader", {
+      state: {
+        teamId: tid,
+        userId: userEmail,
+      },
+    });
     setEditingTeam(null); // 메뉴 닫기
-    // navigate(`/team/${tid}/edit`); // 예시: 수정 페이지로 이동
   };
 
-  // 프로젝트 삭제 핸들러 (실제 로직 구현 필요)
+  // 프로젝트 삭제 핸들러
   const handleDeleteProject = async (tid: number) => {
     if (window.confirm("정말로 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
       try {
         // --- 추가된 API 호출 로직 ---
-        const response = await fetch(`spring/api/teams/delete`, {
+        const response = await fetch(`${API_URL}/spring/api/teams/delete`, {
           method: "POST", // 또는 서버에서 요구하는 HTTP 메소드 (예: DELETE)
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tid: tid }), // 팀 ID를 JSON으로 전송
@@ -217,6 +239,34 @@ const ProjectList: React.FC = () => {
     }
   };
 
+  const handleLeaveTeam = async (tid: number) => {
+    if (window.confirm("정말로 이 팀을 나가시겠습니까?")) {
+      try {
+        // 팀 나가기 API 호출
+        const response = await fetch(`${API_URL}/spring/api/teams/exit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tid: tid, uid: userEmail }),
+        });
+
+        if (!response.ok) {
+          throw new Error("팀 나가기에 실패했습니다.");
+        }
+        
+        alert("팀에서 성공적으로 나갔습니다.");
+        
+        // UI에서 해당 팀 즉시 제거
+        setTeams(teams.filter(team => team.tid !== tid)); 
+
+      } catch (error) {
+        console.error("Error leaving team:", error);
+        alert("팀 나가기 처리 중 오류가 발생했습니다.");
+      } finally {
+        setEditingTeam(null); // 메뉴 닫기
+      }
+    }
+  };
+
   return (
     <Container>
       <HeaderBar>
@@ -227,7 +277,7 @@ const ProjectList: React.FC = () => {
       <Body>
         <Sidebar>
           <SidebarTitle>
-            {userEmail ? `${userEmail}님의 프로젝트` : "○○○님의 프로젝트"}
+            {userName ? `${userName}님의 프로젝트` : "○○○님의 프로젝트"}
           </SidebarTitle>
           <SidebarList>
             {teams.length === 0 ? (
@@ -270,11 +320,22 @@ const ProjectList: React.FC = () => {
                   messages.map((message, idx) => (
                     <MessageItem key={idx}>
                       <div>
+                        {/* content 값에 따라 다른 메시지 표시 */}
                         {message.content === 1 ? (
+                          // 팀원 초대 요청 (content: 1)
                           <>
                             <b>{message.senduid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
                           </>
+                        ) : message.content === 3 ? (
+                          // 팀 탈퇴 알림 (content: 3) - 새로 추가된 부분
+                          <>
+                            <b>{message.senduid}</b>님이 <b>{message.tname}</b>에서 나갔습니다.
+                            <DismissButton onClick={() => handleDismiss(message)}>
+                              ×
+                            </DismissButton>
+                          </>
                         ) : (
+                          // 그 외 (팀원 거절 등)
                           <>
                             <b>{message.senduid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
                             <DismissButton onClick={() => handleDismiss(message)}>
@@ -285,8 +346,8 @@ const ProjectList: React.FC = () => {
                       </div>
                       <MessageMeta>
                         {/* 날짜, 시간 등 추가 가능 */}
-                        {/* 예: 2024.05.26 */}
                       </MessageMeta>
+                      {/* 수락/거절 버튼은 content가 1일 때만 표시 */}
                       {message.content === 1 && (
                         <ModalButtonRow>
                           <ModalButton $accept onClick={() => handleChoice(true, message)}>
@@ -321,33 +382,50 @@ const ProjectList: React.FC = () => {
                   <ProjectCardImage src="image/listImage.jpg" alt={team.tname} />
                   <ProjectCardLabel>{team.tname}</ProjectCardLabel>
                   
-                  {/* --- 추가된 부분 --- */}
-                  {/* 팀장일 경우에만 수정 버튼 표시 */}
-                  {team.uid === userEmail && (
-                    <ModifyButton onClick={(e) => handleModifyClick(e, team)}>
-                      수정
-                    </ModifyButton>
-                  )}
+                  {/* --- 수정된 부분: 조건 없이 항상 버튼을 표시 --- */}
+                  <ModifyButton onClick={(e) => handleModifyClick(e, team)}>
+                    수정
+                  </ModifyButton>
                 </ProjectCard>
               ))}
             </ProjectGrid>
           )}
 
-          {/* --- 추가된 부분 --- */}
-          {/* 수정 메뉴 (Portal을 사용하면 더 안정적으로 렌더링 가능) */}
+          {/* --- 수정된 부분: 메뉴 내부의 버튼을 역할에 따라 분기 --- */}
           {editingTeam && createPortal(
-            <ModificationMenu
-              ref={modificationMenuRef}
-              style={{ top: `${editingTeam.top}px`, left: `${editingTeam.left}px` }}
-            >
-              <MenuButton onClick={() => handleEditMembers(editingTeam.tid)}>
-                팀원 목록 수정
-              </MenuButton>
-              <MenuButton onClick={() => handleDeleteProject(editingTeam.tid)} $delete>
-                프로젝트 삭제
-              </MenuButton>
-            </ModificationMenu>,
-            document.body // body에 직접 렌더링하여 z-index 문제 방지
+            (() => {
+              // 현재 메뉴가 열린 팀 정보를 찾음
+              const activeTeamForMenu = teams.find(t => t.tid === editingTeam.tid);
+              if (!activeTeamForMenu) return null;
+
+              // 팀장 여부 확인
+              const isLeader = activeTeamForMenu.uid === userEmail;
+
+              return (
+                <ModificationMenu
+                  ref={modificationMenuRef}
+                  style={{ top: `${editingTeam.top}px`, left: `${editingTeam.left}px` }}
+                >
+                  {isLeader ? (
+                    // 팀장일 경우 보여줄 메뉴
+                    <>
+                      <MenuButton onClick={() => handleEditMembers(editingTeam.tid)}>
+                        팀장 페이지
+                      </MenuButton>
+                      <MenuButton onClick={() => handleDeleteProject(editingTeam.tid)} $delete>
+                        팀 삭제
+                      </MenuButton>
+                    </>
+                  ) : (
+                    // 팀원일 경우 보여줄 메뉴
+                    <MenuButton onClick={() => handleLeaveTeam(editingTeam.tid)} $delete>
+                      팀 나가기
+                    </MenuButton>
+                  )}
+                </ModificationMenu>
+              );
+            })(),
+            document.body
           )}
         </MainArea>
       </Body>
