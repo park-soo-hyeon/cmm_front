@@ -47,8 +47,12 @@ const Teams: React.FC = () => {
   const [teamId] = useState(1);
   
   const { socket } = useSocketManager(String(teamId), userId);
+  
+  // 🔽 **오류 수정: socketRef를 여기서 선언하고 socket 상태와 동기화합니다.**
   const socketRef = useRef<Socket | null>(null);
-  useEffect(() => { socketRef.current = socket; }, [socket]);
+  useEffect(() => {
+    socketRef.current = socket;
+  }, [socket]);
 
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, String(teamId), userId);
   const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
@@ -87,7 +91,6 @@ const Teams: React.FC = () => {
     socket?.emit('join-project', { pId });
   }, [socket, selectedProjectId]);
 
-  // 🔽 **1. 핸들러 함수 구현**
   const handleCreateProject = useCallback(() => {
     const name = prompt("새 프로젝트의 이름을 입력하세요:");
     if (name && name.trim()) {
@@ -103,22 +106,56 @@ const Teams: React.FC = () => {
   }, [socket]);
 
   const handleDeleteProject = useCallback((pId: number) => {
-    if (window.confirm(`'${projects.find(p => p.pId === pId)?.pName}' 프로젝트를 정말로 삭제하시겠습니까?`)) {
+    const currentProject = projects.find(p => p.pId === pId);
+    if (window.confirm(`'${currentProject?.pName}' 프로젝트를 정말로 삭제하시겠습니까?`)) {
       socket?.emit('project-delete', { pId });
     }
   }, [socket, projects]);
 
-
-  const getMaxZIndex = () => { /* ... (이전과 동일) ... */ return 0;};
-  const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => { /* ... (이전과 동일) ... */ };
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => { /* ... (이전과 동일) ... */ };
+  const getMaxZIndex = () => {
+    const textMax = textBoxes.length > 0 ? Math.max(0, ...textBoxes.map((b: any) => b.zIndex ?? 0)) : 0;
+    const voteMax = voteBoxes.length > 0 ? Math.max(0, ...voteBoxes.map((b: any) => b.zIndex ?? 0)) : 0;
+    const imageMax = imageBoxes.length > 0 ? Math.max(0, ...imageBoxes.map((b: any) => b.zIndex ?? 0)) : 0;
+    return Math.max(textMax, voteMax, imageMax);
+  };
+  
+  const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!mainAreaRef.current || !socket || e.target !== mainAreaRef.current || !selectedProjectId) return;
+      const rect = mainAreaRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (isTextMode) {
+        socket.emit("textEvent", { fnc: "new", type: "text", pId: selectedProjectId, cLocate: { x, y }, cScale: { width: 200, height: 40 }, cContent: "", cFont: "Arial", cColor: "#000000", cSize: 16 });
+        setIsTextMode(false);
+      }
+      if (isVoteCreateMode) {
+        socket.emit("voteEvent", { fnc: "new", type: "vote", pId: selectedProjectId, cLocate: { x, y }, cScale: { width: 300, height: 200 }, cTitle: "새 투표", cList: [{ content: "" }, { content: "" }] });
+        setIsVoteCreateMode(false);
+      }
+  };
+  
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedProjectId) return;
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("tId", String(teamId));
+    formData.append("pId", String(selectedProjectId));
+    formData.append("uId", userId);
+    formData.append("cLocate", JSON.stringify({ x: 100, y: 100 }));
+    formData.append("cScale", JSON.stringify({ width: 200, height: 200 }));
+    try {
+      await fetch(`${SOCKET_URL}/node/api/image/upload`, { method: "POST", body: formData });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <Container>
       <SidebarContainer $isCollapsed={isSidebarCollapsed}>
         <ProjectHeader><h2>프로젝트 목록</h2></ProjectHeader>
         <ProjectList>
-          {/* 🔽 **2. JSX에 버튼과 핸들러 연결** */}
           {projects.map(p => (
             <ProjectItem key={p.pId} $isSelected={selectedProjectId === p.pId} onClick={() => handleSelectProject(p.pId)}>
               <span>{p.pName}</span>
@@ -141,11 +178,10 @@ const Teams: React.FC = () => {
           <ProjectSelectPrompt><PromptText>👈 사이드바에서 참여할 프로젝트를 선택해주세요.</PromptText></ProjectSelectPrompt>
         ) : (
           <>
-            {/* ... (나머지 캔버스 관련 코드는 이전과 동일) ... */}
             <Draggable nodeRef={toolbarRef as React.RefObject<HTMLElement>} bounds="parent">
               <FloatingToolbar ref={toolbarRef}>
                 <ToolIcon onClick={() => setIsTextMode(prev => !prev)} title="텍스트 상자 생성"><p style={{fontWeight: isTextMode ? 'bold' : 'normal'}}>T</p></ToolIcon>
-                <ToolIcon onClick={() => fileInputRef.current?.click()}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileFileChange} /></ToolIcon>
+                <ToolIcon onClick={() => fileInputRef.current?.click()}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
                 <ToolIcon><PenIcon /></ToolIcon>
               </FloatingToolbar>
             </Draggable>
