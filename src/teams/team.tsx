@@ -1,79 +1,105 @@
-import React, { useRef, useEffect, useState } from 'react';
-import styled from 'styled-components';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 import Draggable from 'react-draggable';
 
-// 훅과 컴포넌트 import
+// --- 스타일 컴포넌트 import ---
+import {
+  Container, SidebarContainer, SidebarToggle, ProjectHeader, ProjectList,
+  ProjectItem, ProjectActions, CreateProjectButton, MainArea, ProjectSelectPrompt,
+  PromptText, FloatingToolbar, ToolIcon, ToolbarDivider, FloatingButtonWrap,
+  CreateMenu, CreateMenuButton, FloatingButton, ImageIcon, PenIcon, Cursor
+} from './Team.styles';
+
+// --- 커스텀 훅 import ---
 import { useSocketManager } from './hooks/useSocketManager';
 import { useWebRTC } from './hooks/useWebRTC';
 import { useObjectManager } from './hooks/useObjectManager';
-import { VideoGrid } from './components/VideoGrid';
+
+// --- 개별 컴포넌트 import (주석 해제) ---
 import TextBoxes from "./components/textBox";
 import VoteBoxes from "./components/voteBox";
 import ImageBoxes from "./components/ImageBox";
-import {
-  Container, Content, SidebarContainer, Logo, SidebarTitle, ProjectSection, ProjectTitle, DropdownArrow,
-  MeetingList, MeetingItem, MeetingDate, SubItem, SidebarFooter, MainArea, FloatingToolbar, ToolIcon,
-  ToolbarDivider, ColorCircle, FloatingButtonWrap, CreateMenu, CreateMenuButton, FloatingButton,
-  ColorPicker, SelectBox, ImageIcon, PenIcon, Cursor
-} from './Team.styles';
+import { VideoGrid } from './components/VideoGrid';
 
-// 상수 정의
-const FONT_FAMILIES = [ 'Nanum Gothic', 'Nanum Myeongjo', 'Nanum Pen Script', 'BM Jua', 'Gungseo', 'Arial' ];
-const PROJECT_ID = "1";
 const SOCKET_URL = "https://blanksync.kro.kr";
+const PROJECT_ID_FOR_IMAGE_UPLOAD = "1"; // 이미지 업로드 시 필요한 pId (임시)
+
+// 타입 정의
+interface Project { pId: number; pName: string; createDate: string; }
 
 const Teams: React.FC = () => {
-  const { state } = useLocation();
-  const { userId, teamId } = state || {};
-  const navigate = useNavigate();
+  // --- 상태 관리 ---
   const mainAreaRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // --- UI 상태 ---
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+  // --- 캔버스 모드 상태 ---
   const [isTextMode, setIsTextMode] = useState(false);
   const [isVoteCreateMode, setIsVoteCreateMode] = useState(false);
-
-  const { socket } = useSocketManager(teamId, userId);
-  const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, teamId, userId);
   
-  // ✅ [수정] useObjectManager에서 상태와 '상태 변경 함수'를 모두 가져옵니다.
-  const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
-
+  // --- 포커스 상태 ---
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [focusedVoteIdx, setFocusedVoteIdx] = useState<number | null>(null);
   const [focusedImageIdx, setFocusedImageIdx] = useState<number | null>(null);
-  const [textColor, setTextColor] = useState('#000000');
-  const [fontSize, setFontSize] = useState(16);
-  const [fontFamily, setFontFamily] = useState('Arial');
-  const [fontSizeInput, setFontSizeInput] = useState(String(fontSize));
 
+  // --- 핵심 훅 ---
+  // 임시 사용자 및 팀 ID (실제로는 props나 라우터 state 등으로 받아와야 함)
+  const [userId] = useState('user' + Math.floor(Math.random() * 1000));
+  const [teamId] = useState(1);
+  
+  const { socket } = useSocketManager(String(teamId), userId);
+  const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, String(teamId), userId);
+  const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
+
+  // --- 소켓 이벤트 리스너 (프로젝트 관련) ---
   useEffect(() => {
-    if (focusedIdx !== null && textBoxes[focusedIdx]) {
-      const currentBox = textBoxes[focusedIdx];
-      setTextColor(currentBox.color);
-      setFontSize(currentBox.size);
-      setFontFamily(currentBox.font);
-      setFontSizeInput(String(currentBox.size));
-    }
-  }, [focusedIdx, textBoxes]);
+    if (!socket) return;
+    
+    // 초기 접속 시 프로젝트 목록 수신
+    socket.on('room-info', ({ projects: initialProjects }: { projects: Project[] }) => {
+      setProjects(initialProjects);
+    });
+    
+    // 프로젝트 관련 CRUD 이벤트 처리
+    socket.on('project-added', (newProject: Project) => setProjects(prev => [...prev, newProject]));
+    socket.on('project-renamed', ({ pId, newName }) => setProjects(prev => prev.map(p => p.pId === pId ? { ...p, pName: newName } : p)));
+    socket.on('project-deleted', ({ pId }) => {
+        setProjects(prev => prev.filter(p => p.pId !== pId));
+        if (selectedProjectId === pId) setSelectedProjectId(null);
+    });
 
+    return () => {
+      socket.off('room-info');
+      socket.off('project-added');
+      socket.off('project-renamed');
+      socket.off('project-deleted');
+    };
+  }, [socket, selectedProjectId]);
+  
+  // --- 마우스 커서 위치 전송 ---
   useEffect(() => {
     const mainArea = mainAreaRef.current;
     if (!mainArea || !broadcastCursorPosition) return;
-    let throttleTimeout: NodeJS.Timeout | null = null;
     const handleMouseMove = (e: MouseEvent) => {
-      if (throttleTimeout) return;
-      throttleTimeout = setTimeout(() => {
         const rect = mainArea.getBoundingClientRect();
         broadcastCursorPosition(e.clientX - rect.left, e.clientY - rect.top);
-        throttleTimeout = null;
-      }, 50);
     };
     mainArea.addEventListener('mousemove', handleMouseMove);
     return () => mainArea.removeEventListener('mousemove', handleMouseMove);
   }, [broadcastCursorPosition]);
+
+  // --- 핸들러 함수 ---
+  const handleSelectProject = useCallback((pId: number) => {
+    if (selectedProjectId === pId) return;
+    setSelectedProjectId(pId);
+    socket?.emit('join-project', { pId });
+  }, [socket, selectedProjectId]);
 
   const getMaxZIndex = () => {
     const textMax = textBoxes.length > 0 ? Math.max(0, ...textBoxes.map(b => b.zIndex ?? 0)) : 0;
@@ -82,156 +108,96 @@ const Teams: React.FC = () => {
     return Math.max(textMax, voteMax, imageMax);
   };
   
-  const handleImageButtonClick = () => fileInputRef.current?.click();
+  const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!mainAreaRef.current || !socket || e.target !== mainAreaRef.current || !selectedProjectId) return;
+      
+      const rect = mainAreaRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
+      if (isTextMode) {
+        socket.emit("textEvent", { fnc: "new", type: "text", pId: selectedProjectId, cLocate: { x, y }, cScale: { width: 200, height: 40 }, cContent: "", cFont: "Arial", cColor: "#000000", cSize: 16 });
+        setIsTextMode(false);
+      }
+      if (isVoteCreateMode) {
+        socket.emit("voteEvent", { fnc: "new", type: "vote", pId: selectedProjectId, cLocate: { x, y }, cScale: { width: 300, height: 200 }, cTitle: "새 투표", cList: [{ content: "" }, { content: "" }] });
+        setIsVoteCreateMode(false);
+      }
+  };
+  
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const x = 100, y = 100, width = 200, height = 200;
+    if (!file || !selectedProjectId) return;
     const formData = new FormData();
     formData.append("image", file);
-    formData.append("tId", teamId);
-    formData.append("pId", PROJECT_ID);
+    formData.append("tId", String(teamId));
+    formData.append("pId", String(selectedProjectId)); // 현재 선택된 프로젝트 ID 사용
     formData.append("uId", userId);
-    formData.append("cLocate", JSON.stringify({ x, y }));
-    formData.append("cScale", JSON.stringify({ width, height }));
+    formData.append("cLocate", JSON.stringify({ x: 100, y: 100 }));
+    formData.append("cScale", JSON.stringify({ width: 200, height: 200 }));
     try {
-      const res = await fetch(`${SOCKET_URL}/node/api/image/upload`, { method: "POST", body: formData });
-      if (!res.ok) throw new Error("이미지 업로드 실패: " + res.status);
+      await fetch(`${SOCKET_URL}/node/api/image/upload`, { method: "POST", body: formData });
     } catch (err) {
-      alert("이미지 업로드 실패: " + err);
       console.error(err);
     }
   };
 
-  const handleCreateVoteBoxButton = () => {
-    setShowCreateMenu(false);
-    setIsVoteCreateMode(true);
-  };
-  
-  const handleStyleChange = (type: string, value: string | number) => {
-    if (focusedIdx === null || !socket) return;
-    const currentBox = textBoxes[focusedIdx];
-    if (!currentBox?.node) return;
-    const updatedBox = {
-        ...currentBox,
-        color: type === 'color' ? value as string : currentBox.color,
-        size: type === 'fontSize' ? value as number : currentBox.size,
-        font: type === 'fontFamily' ? value as string : currentBox.font,
-    };
-    setTextBoxes(prev => prev.map((box, i) => i === focusedIdx ? updatedBox : box));
-    socket.emit("textEvent", {
-        fnc: "update", node: updatedBox.node, type: "text",
-        cColor: updatedBox.color, cSize: updatedBox.size, cFont: updatedBox.font,
-    });
-  };
-
-  const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!mainAreaRef.current || !socket || e.target !== mainAreaRef.current) return;
-      const rect = mainAreaRef.current.getBoundingClientRect();
-      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width - 200));
-      const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height - 100));
-      if (isTextMode) {
-        socket.emit("textEvent", {
-          fnc: "new", type: "text",
-          cLocate: { x, y }, cScale: { width: 200, height: 40 },
-          cFont: fontFamily, cColor: textColor, cSize: fontSize, cContent: "",
-        });
-        setIsTextMode(false);
-      }
-      if (isVoteCreateMode) {
-        socket.emit("voteEvent", {
-          fnc: "new", type: "vote",
-          cLocate: { x, y }, cScale: { width: 300, height: 200 },
-          cTitle: "새 투표", cList: [{ content: "" }, { content: "" }],
-        });
-        setIsVoteCreateMode(false);
-      }
-  };
-
+  // --- 렌더링 ---
   return (
     <Container>
-      <Content>
-        <SidebarContainer> 
-            <Logo onClick={() => navigate("/")}>BlankSync</Logo>
-            <SidebarTitle><strong>팀 프로젝트</strong></SidebarTitle>
-            <ProjectSection>
-              <ProjectTitle>
-                <span>2025년 신제품</span><DropdownArrow>▼</DropdownArrow>
-              </ProjectTitle>
-              <MeetingList>
-                <MeetingItem>
-                  <MeetingDate>0315 회의 내용</MeetingDate>
-                  <SubItem>일정 정리</SubItem>
-                  <SubItem>주제 회의</SubItem>
-                </MeetingItem>
-              </MeetingList>
-            </ProjectSection>
-            <SidebarFooter>페이지 생성 / 삭제</SidebarFooter>
-        </SidebarContainer>
+      <SidebarContainer $isCollapsed={isSidebarCollapsed}>
+        <ProjectHeader><h2>프로젝트 목록</h2></ProjectHeader>
+        <ProjectList>
+          {projects.map(p => (
+            <ProjectItem key={p.pId} $isSelected={selectedProjectId === p.pId} onClick={() => handleSelectProject(p.pId)}>
+              <span>{p.pName}</span>
+              <ProjectActions>{/* 수정/삭제 버튼 (구현 필요) */}</ProjectActions>
+            </ProjectItem>
+          ))}
+        </ProjectList>
+        <CreateProjectButton onClick={() => socket?.emit('project-create', { name: '새 프로젝트' })}>+ 새 프로젝트 생성</CreateProjectButton>
+      </SidebarContainer>
 
-        <MainArea ref={mainAreaRef} $isTextMode={isTextMode} $isVoteCreateMode={isVoteCreateMode} onClick={handleMainAreaClick}>
+      <SidebarToggle $isCollapsed={isSidebarCollapsed} onClick={() => setIsSidebarCollapsed(v => !v)}>
+        {isSidebarCollapsed ? '▶' : '◀'}
+      </SidebarToggle>
+      
+      <MainArea ref={mainAreaRef} $isTextMode={isTextMode} $isVoteCreateMode={isVoteCreateMode} onClick={handleMainAreaClick}>
+        {selectedProjectId === null ? (
+          <ProjectSelectPrompt>
+            <PromptText>👈 사이드바에서 참여할 프로젝트를 선택해주세요.</PromptText>
+          </ProjectSelectPrompt>
+        ) : (
+          <>
             <Draggable nodeRef={toolbarRef as React.RefObject<HTMLElement>} bounds="parent">
               <FloatingToolbar ref={toolbarRef}>
-                {focusedIdx === null ? (
-                  <>
-                    <ToolIcon onClick={(e) => { e.stopPropagation(); setIsTextMode(prev => !prev); }} style={{ color: isTextMode ? "#6b5b95" : undefined }} title="텍스트 상자 생성 모드">T</ToolIcon>
-                    <ToolIcon onClick={handleImageButtonClick}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
-                    <ToolIcon><PenIcon /></ToolIcon>
-                    <ToolbarDivider />
-                    <ToolIcon>+</ToolIcon>
-                    <ColorCircle color="#ff0000" />
-                    <ColorCircle color="#00ff00" />
-                    <ColorCircle color="#0000ff" />
-                    <ColorCircle color="#ffb700" />
-                  </>
-                ) : (
-                  <>
-                    <ColorPicker type="color" value={textColor} onChange={(e) => handleStyleChange('color', e.target.value)} />
-                    <div><input type="number" min={8} max={64} value={fontSizeInput} onChange={e => setFontSizeInput(e.target.value)} onBlur={e => handleStyleChange('fontSize', Number(e.target.value))} style={{ width: 40, textAlign: "center" }} /><span>px</span></div>
-                    <SelectBox value={fontFamily} onChange={(e) => handleStyleChange('fontFamily', e.target.value)}>
-                        {FONT_FAMILIES.map(font => <option key={font} value={font}>{font}</option>)}
-                    </SelectBox>
-                  </>
-                )}
+                <ToolIcon onClick={() => setIsTextMode(prev => !prev)} title="텍스트 상자 생성"><p style={{fontWeight: isTextMode ? 'bold' : 'normal'}}>T</p></ToolIcon>
+                <ToolIcon onClick={() => fileInputRef.current?.click()}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
+                <ToolIcon><PenIcon /></ToolIcon>
               </FloatingToolbar>
             </Draggable>
-            
-            {/* ✅ [수정] 각 컴포넌트에 상태와 상태 변경 함수(setter)를 모두 넘겨줍니다. */}
-            <TextBoxes
-                textBoxes={textBoxes} setTextBoxes={setTextBoxes}
-                focusedIdx={focusedIdx} setFocusedIdx={setFocusedIdx}
-                mainAreaRef={mainAreaRef} socketRef={{ current: socket }}
-                toolbarRef={toolbarRef} getMaxZIndex={getMaxZIndex}
-            />
-            <VoteBoxes
-                voteBoxes={voteBoxes} setVoteBoxes={setVoteBoxes}
-                focusedVoteIdx={focusedVoteIdx} setFocusedVoteIdx={setFocusedVoteIdx}
-                mainAreaRef={mainAreaRef} socketRef={{ current: socket }}
-                getMaxZIndex={getMaxZIndex} userId={userId}
-            />
-            <ImageBoxes
-                imageBoxes={imageBoxes} setImageBoxes={setImageBoxes}
-                focusedImageIdx={focusedImageIdx} setFocusedImageIdx={setFocusedImageIdx}
-                mainAreaRef={mainAreaRef} socketRef={{ current: socket }}
-                getMaxZIndex={getMaxZIndex}
-            />
 
-            {Object.entries(cursors).map(([id, { x, y }]) => (<Cursor key={id} x={x} y={y} />))}
+            <TextBoxes textBoxes={textBoxes} setTextBoxes={setTextBoxes} focusedIdx={focusedIdx} setFocusedIdx={setFocusedIdx} mainAreaRef={mainAreaRef} socketRef={socketRef} toolbarRef={toolbarRef} getMaxZIndex={getMaxZIndex} />
+            <VoteBoxes voteBoxes={voteBoxes} setVoteBoxes={setVoteBoxes} focusedVoteIdx={focusedVoteIdx} setFocusedVoteIdx={setFocusedVoteIdx} mainAreaRef={mainAreaRef} socketRef={socketRef} getMaxZIndex={getMaxZIndex} userId={userId} />
+            <ImageBoxes imageBoxes={imageBoxes} setImageBoxes={setImageBoxes} focusedImageIdx={focusedImageIdx} setFocusedImageIdx={setFocusedImageIdx} mainAreaRef={mainAreaRef} socketRef={socketRef} getMaxZIndex={getMaxZIndex} />
+            
             <VideoGrid localStream={localStream} remoteStreams={remoteStreams} />
+            {Object.entries(cursors).map(([id, { x, y }]) => (<Cursor key={id} x={x} y={y} />))}
 
             <FloatingButtonWrap>
-                {showCreateMenu && (
-                <CreateMenu>
-                    <CreateMenuButton onClick={handleCreateVoteBoxButton}>투표</CreateMenuButton>
-                    <CreateMenuButton onClick={inCall ? handleEndCall : handleStartCall}>{inCall ? '통화 종료' : '화상통화'}</CreateMenuButton>
-                </CreateMenu>
-                )}
-                <FloatingButton onClick={() => setShowCreateMenu((v) => !v)}>+</FloatingButton>
+              {showCreateMenu && (
+              <CreateMenu>
+                  <CreateMenuButton onClick={() => { setIsVoteCreateMode(true); setShowCreateMenu(false); }}>투표</CreateMenuButton>
+                  <CreateMenuButton onClick={inCall ? handleEndCall : handleStartCall}>{inCall ? '통화 종료' : '화상통화'}</CreateMenuButton>
+              </CreateMenu>
+              )}
+              <FloatingButton onClick={() => setShowCreateMenu((v) => !v)}>+</FloatingButton>
             </FloatingButtonWrap>
-        </MainArea>
-      </Content>
+          </>
+        )}
+      </MainArea>
     </Container>
   );
 };
+
 export default Teams;

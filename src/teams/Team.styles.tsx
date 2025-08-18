@@ -1,12 +1,14 @@
 import styled from 'styled-components';
 import React from 'react';
 
+// 1. 기존 코드의 핵심 컬러 테마 유지
 export const COLOR = {
   bg: "#EDE9F2", card: "#F2F2F2", accent: "#B8B6F2", accentDark: "#545159",
   text: "#3B3740", subText: "#A19FA6", logo: "#C6C4F2", imgBg: "#D1D0F2",
   imgShadow: "#CEDEF2", border: "#E3DCF2",
 };
 
+// 2. 캔버스 및 공통 요소 스타일 유지
 export const Cursor = styled.div.attrs<{ x: number; y: number }>(({ x, y }) => ({
   style: { transform: `translate(${x}px, ${y}px)` },
 }))<{ x: number; y: number }>`
@@ -16,111 +18,161 @@ export const Cursor = styled.div.attrs<{ x: number; y: number }>(({ x, y }) => (
   transition: transform 0.05s linear;
 `;
 
+// 3. 새 코드의 전체 레이아웃으로 교체
 export const Container = styled.div`
-  font-family: 'Pretendard', sans-serif;
-  background: ${COLOR.bg};
-  color: ${COLOR.text};
-  min-height: 100vh;
   display: flex;
-  flex-direction: column;
-`;
-
-export const Content = styled.div`
-  display: flex;
-  flex: 1;
   height: 100vh;
+  width: 100vw;
+  background-color: ${COLOR.bg};
+  overflow: hidden;
+  font-family: 'Pretendard', sans-serif;
+  color: ${COLOR.text};
 `;
 
-export const SidebarContainer = styled.div`
+// 4. 새 코드의 접고 펴는 기능이 있는 사이드바로 교체
+export const SidebarContainer = styled.aside<{ $isCollapsed: boolean }>`
   width: 280px;
-  background: ${COLOR.card};
-  border-right: 1.5px solid ${COLOR.border};
-  padding: 32px 24px;
+  background-color: ${COLOR.card};
+  border-right: 1px solid ${COLOR.border};
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  transition: all 0.3s ease-in-out;
+  flex-shrink: 0;
   box-shadow: 2px 0 8px ${COLOR.imgShadow};
+
+  ${({ $isCollapsed }) => $isCollapsed && `
+    width: 0;
+    padding: 24px 0;
+    overflow: hidden;
+  `}
 `;
 
-export const Logo = styled.h1`
-  font-size: 24px;
-  font-weight: bold;
-  color: ${COLOR.logo};
+// 5. 새 코드의 사이드바 토글 버튼 추가
+export const SidebarToggle = styled.button<{ $isCollapsed: boolean }>`
+  width: 24px;
+  height: 48px;
+  background-color: ${COLOR.card};
+  border: 1px solid ${COLOR.border};
+  border-left: none;
+  border-radius: 0 8px 8px 0;
   cursor: pointer;
-  margin-bottom: 24px;
-  letter-spacing: 1px;
-  transition: color 0.18s;
+  position: relative;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   &:hover {
-    color: ${COLOR.accent};
+    background-color: ${COLOR.bg};
   }
 `;
 
-export const SidebarTitle = styled.div`
-  font-size: 20px;
-  font-weight: 600;
-  color: ${COLOR.text};
-  margin-bottom: 24px;
+// 6. 새 코드의 프로젝트 목록 관련 스타일 추가
+export const ProjectHeader = styled.div`
+  margin-bottom: 20px;
+  h2 {
+    font-size: 1.2rem;
+    color: ${COLOR.text};
+  }
 `;
 
-export const ProjectSection = styled.div`
-  margin-bottom: 24px;
-  flex: 1;
-`;
-
-export const ProjectTitle = styled.div`
-  font-weight: bold;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-  color: ${COLOR.text};
-`;
-
-export const DropdownArrow = styled.span`
-  font-size: 14px;
-  margin-left: 8px;
-  color: ${COLOR.subText};
-`;
-
-export const MeetingList = styled.ul`
+export const ProjectList = styled.ul`
   list-style: none;
   padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex-grow: 1;
 `;
 
-export const MeetingItem = styled.li`
+export const ProjectItem = styled.li<{ $isSelected: boolean }>`
+  padding: 12px 16px;
   margin-bottom: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+
+  background-color: ${({ $isSelected }) => $isSelected ? COLOR.imgBg : 'transparent'};
+  color: ${({ $isSelected }) => $isSelected ? COLOR.accentDark : COLOR.text};
+
+  &:hover {
+    background-color: ${COLOR.bg};
+  }
 `;
 
-export const MeetingDate = styled.div`
+export const ProjectActions = styled.div`
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  ${ProjectItem}:hover & {
+    opacity: 1;
+  }
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: ${COLOR.subText};
+    &:hover {
+        color: ${COLOR.text};
+    }
+  }
+`;
+
+export const CreateProjectButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  background-color: ${COLOR.accent};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
   font-weight: bold;
-  margin-bottom: 4px;
-  margin-left: 10px;
-  color: ${COLOR.text};
+  margin-top: auto;
+
+  &:hover {
+    background-color: ${COLOR.accentDark};
+  }
 `;
 
-export const SubItem = styled.div`
-  font-size: 15px;
-  margin-left: 24px;
-  color: ${COLOR.subText};
-  margin-bottom: 2px;
-`;
-
-export const SidebarFooter = styled.div`
-  font-size: 14px;
-  color: ${COLOR.subText};
-  padding-top: 18px;
-  border-top: 1.5px solid ${COLOR.border};
-`;
-
-export const MainArea = styled.div<{ $isTextMode: boolean; $isVoteCreateMode: boolean; }>`
+// 7. 기존 MainArea 와 새 MainContent 를 합침
+export const MainArea = styled.main<{ $isTextMode?: boolean; $isVoteCreateMode?: boolean; }>`
+  flex-grow: 1;
   position: relative;
-  flex: 1;
-  background: ${COLOR.bg};
-  overflow: hidden;
+  overflow: auto;
   padding: 40px 64px;
   cursor: ${({ $isVoteCreateMode, $isTextMode }) => $isVoteCreateMode ? 'crosshair' : $isTextMode ? 'text' : "default"};
 `;
 
+// 8. 새 코드의 프로젝트 선택 유도 메시지 스타일 추가
+export const ProjectSelectPrompt = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
+
+export const PromptText = styled.h1`
+  font-size: 2rem;
+  color: ${COLOR.subText};
+  font-weight: 500;
+`;
+
+
+// 9. 기존 코드의 캔버스 위젯(툴바, 버튼 등) 스타일 유지
 export const FloatingToolbar = styled.div`
   display: flex;
   align-items: center;
@@ -247,4 +299,4 @@ export const SelectBox = styled.select`
 `;
 
 export const ImageIcon = () => ( <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" /> <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" /> <path d="M21 15L16 10L9 18" stroke="currentColor" strokeWidth="2" /> </svg> );
-export const PenIcon = () => ( <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M3 21L12 12M18 6L12 12M12 12L8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /> <path d="M18 6L21 3L18 6ZM18 6L15 3L18 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /> </svg> );
+export const PenIcon = () => ( <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M3 21L12 12M18 6L12 12M12 12L8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /> <path d="M18 6L21 3L18 6ZM18 6L15 3L18 6Z" stroke="currentColor" strokeWidth="2" strokeLine-linecap="round" /> </svg> );
