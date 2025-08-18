@@ -7,22 +7,49 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const { isLoggedIn, logout } = useAuth();
 
+  // 1. localStorage에서 역할(role) 정보를 가져옵니다.
+  const userRole = localStorage.getItem("userRole");
+
+  // 2. 로그인 상태와 역할(role)을 조합하여 관리자 여부를 판단합니다.
+  const isAdmin = isLoggedIn && userRole === 'admin';
+
   return (
     <HeaderContainer>
       <Logo onClick={() => navigate("/")}>BlankSync</Logo>
-      <Nav>
-        <NavItem onClick={() => navigate("/advice")}>홈페이지 설명</NavItem>
-        <NavItem onClick={() => navigate("/create")}>팀 구성하기</NavItem>
-        <NavItem onClick={() => navigate("/projectList")}>나의 프로젝트</NavItem>
-      </Nav>
+      
+      {/* 3. isAdmin 값에 따라 다른 네비게이션 메뉴를 렌더링합니다. */}
+      {isAdmin ? (
+        // 관리자 메뉴
+        <Nav>
+          <NavItem onClick={() => navigate("/traffic")}>서버 관리</NavItem>
+          <NavItem onClick={() => navigate("/teamList")}>팀 관리</NavItem>
+          <NavItem onClick={() => navigate("/memberList")}>회원 관리</NavItem>
+        </Nav>
+      ) : (
+        // 일반 사용자 메뉴
+        <Nav>
+          <NavItem onClick={() => navigate("/advice")}>홈페이지 설명</NavItem>
+          <NavItem onClick={() => navigate("/create")}>팀 구성하기</NavItem>
+          <NavItem onClick={() => navigate("/projectList")}>나의 프로젝트</NavItem>
+        </Nav>
+      )}
+
       <LoginLinks>
         {isLoggedIn ? (
-          <>
-            <LinkItem onClick={() => navigate("/mypage")}>마이페이지</LinkItem>
-            <span style={{ color: COLOR.border }}>/</span>
+          // 4. 로그인 상태에서도 관리자와 사용자의 메뉴를 구분합니다.
+          isAdmin ? (
+            // 관리자 로그아웃
             <LinkItem onClick={() => { logout(); navigate("/"); }}>로그아웃</LinkItem>
-          </>
+          ) : (
+            // 일반 사용자 마이페이지/로그아웃
+            <>
+              <LinkItem onClick={() => navigate("/mypage")}>마이페이지</LinkItem>
+              <span style={{ color: COLOR.border }}>/</span>
+              <LinkItem onClick={() => { logout(); navigate("/"); }}>로그아웃</LinkItem>
+            </>
+          )
         ) : (
+          // 비로그인 상태 메뉴 (기존과 동일)
           <>
             <LinkItem onClick={() => navigate("/login")}>로그인</LinkItem>
             <span style={{ color: COLOR.border }}>/</span>

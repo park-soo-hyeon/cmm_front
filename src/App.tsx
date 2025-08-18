@@ -15,6 +15,9 @@ import Mypage from "./mypage";
 import LoginHandeler from "./login/loginHandeler";
 import NaverLoginHandeler from "./login/naverLoginHandeler";
 import Leader from "./leader";
+import Traffic from "./admin/traffic";
+import MemberList from "./admin/memberList";
+import TeamList from "./admin/teamList";
 
 
 
@@ -124,6 +127,9 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/traffic" element={<Traffic />} />
+          <Route path="/memberList" element={<MemberList />} />
+          <Route path="/teamList" element={<TeamList />} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -1,0 +1,86 @@
+/* 컬러 팔레트를 CSS 변수로 정의 */
+:root {
+  --bg-color: #EDE9F2;
+  --card-color: #FBFBFE; /* F2F2F2는 너무 어두워 조금 더 밝게 조정 */
+  --accent-color: #B8B6F2;
+  --accent-dark-color: #545159;
+  --text-color: #3B3740;
+  --sub-text-color: #A19FA6;
+  --border-color: #E3DCF2;
+}
+
+/* 1. 페이지 전체를 감싸는 컨테이너 스타일 */
+.admin-container {
+  min-height: 100vh; /* 화면 전체 높이를 차지하도록 설정 */
+  background-color: var(--bg-color); /* 페이지 전체 배경색 적용 */
+}
+
+/* 2. 헤더를 제외한 메인 콘텐츠 영역 스타일 */
+.traffic-page {
+  /* 기존 traffic-page 배경색은 부모에게 넘겨주고 제거 */
+  /* background-color: var(--bg-color); */ 
+
+  /* 콘텐츠를 중앙에 배치하고 최대 너비를 설정 */
+  max-width: 900px;
+  margin: 0 auto; /* 좌우 마진을 auto로 주어 중앙 정렬 */
+  padding: 40px; /* 콘텐츠 영역의 안쪽 여백 */
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+}
+
+/* 페이지 메인 타이틀 */
+.main-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: var(--accent-dark-color);
+}
+
+/* 공통 카드 스타일 */
+.card {
+  background-color: var(--card-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--text-color);
+}
+
+/* 1. 전체 서버 부하 상태 */
+.status-container {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px 0;
+  background-color: var(--bg-color); /* 안쪽 배경을 살짝 다르게 */
+  border-radius: 8px;
+}
+
+.status-item {
+  text-align: center;
+}
+
+.status-label {
+  display: block;
+  font-size: 14px;
+  color: var(--sub-text-color);
+  margin-bottom: 8px;
+}
+
+.status-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-dark-color);
+}
+
+
+/* 2 & 3. 차트 컨테이너 */
+.chart-container {
+  width: 100%;
+  height: 200px;
+}
