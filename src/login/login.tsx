@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const { login } = useAuth();
 
   const NAVER_CLIENT_ID = "YqfWThdztNwv006mYBBW";
-  const NAVER_REDIRECT_URI = "http://3.220.156.58/naver/callback";
+  const NAVER_REDIRECT_URI = "localhost:80/spring/naver/callback";
   const NAVER_STATE = "random_state_string"; // CSRF 방지용 임의 문자열
 
   const NAVER_AUTH_URL =
@@ -29,28 +29,43 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(API_URL+`/spring/api/users/login`, {
+      const response = await fetch(`${API_URL}/spring/api/users/login`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ uid: uid, upassword: upassword })
+        body: JSON.stringify({ uid: uid, upassword: upassword }),
       });
-      const result = await response.text(); // string uid 값 받기
-      if (result === uid) {
-        console.log("3");
-        alert("로그인 성공!");
-        login(uid);
 
+      // 1. 응답이 성공적인지 확인 (e.g., status code 200)
+      if (response.ok) {
+        // 2. 응답을 JSON 형태로 파싱
+        const result = await response.json(); // { uid: "test", role: "admin" } 과 같은 객체를 기대
+
+        alert("로그인 성공!");
+        
+        // AuthContext의 login 함수 호출
+        login(result.uid);
+
+        // 3. localStorage에 role 정보도 함께 저장
         const expiresAt = Date.now() + 60 * 60 * 1000; // 1시간 뒤
-        localStorage.setItem("userEmail", uid);
+        localStorage.setItem("userEmail", result.uid);
+        localStorage.setItem("userRole", result.role); // role 저장
         localStorage.setItem("expiresAt", expiresAt.toString());
-        login(uid);
-        navigate("/");
+
+        // 4. role 값에 따라 다른 경로로 이동
+        if (result.role === 'admin') {
+          navigate("/traffic"); // admin일 경우 관리자 페이지로
+        } else {
+          navigate("/"); // user 또는 그 외의 경우 메인 페이지로
+        }
+
       } else {
+        // 로그인 실패 시 (e.g., status code 401, 404)
         alert("아이디 또는 비밀번호가 올바르지 않습니다.");
       }
     } catch (error) {
+      console.error("Login error:", error);
       alert("서버와의 통신에 실패했습니다.");
     } finally {
       setLoading(false);
