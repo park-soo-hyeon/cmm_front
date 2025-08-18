@@ -54,9 +54,31 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
     };
   };
 
+  const iceServers = {
+  iceServers: [
+    // Google STUN 서버들
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+
+    // 기타 STUN 서버들
+    { urls: 'stun:stun.services.mozilla.com' },
+    { urls: 'stun:stun.nextcloud.com:443' },
+    { urls: 'stun:stun.stunprotocol.org:3478' },
+    
+    // 공개 TURN 서버 (테스트용)
+    { 
+      urls: 'turn:numb.viagenie.ca:3478',
+      username: 'demo',
+      credential: 'demo'
+    }
+  ],
+};
+
+
   const createPeerConnection = (peerId: string, isCaller: boolean) => {
     console.log(`Creating Peer Connection to ${peerId}. Am I the caller? ${isCaller}`);
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const pc = new RTCPeerConnection(iceServers);
 
     pc.onnegotiationneeded = async () => {
       try {
