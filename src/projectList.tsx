@@ -5,6 +5,11 @@ import { createPortal } from "react-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+type TeamsResponse = {
+  uname: string;
+  team: TeamData[];
+};
+
 type TeamData = {
   tid: number;
   tname: string;
@@ -14,7 +19,9 @@ type TeamData = {
 type MessageData = {
   tid: number;
   uid: string;
+  uname: string;       // 받는 사람 이름 (추가)
   senduid: string;
+  senduname: string;   // 보낸 사람 이름 (추가)
   tname: string;
   content: number;
 };
@@ -30,6 +37,7 @@ const ProjectList: React.FC = () => {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [showMessage, setShowMessage] = useState(false);
   const [teams, setTeams] = useState<TeamData[]>([]);
+  const [userName, setUserName] = useState<string>("")
   const userEmail = localStorage.getItem("userEmail");
   const mailIconRef = useRef<HTMLSpanElement>(null);
   const [editingTeam, setEditingTeam] = useState<EditingTeamInfo | null>(null);
@@ -48,8 +56,16 @@ const ProjectList: React.FC = () => {
       if (!response.ok) {
         throw new Error("팀 목록을 불러오는데 실패했습니다.");
       }
-      const data: TeamData[] = await response.json();
-      setTeams(data);
+      
+      // Spring에서 보내주는 새로운 데이터 구조({ uname, teamList })에 맞게 타입을 지정합니다.
+      const data: TeamsResponse = await response.json();
+
+      console.log("서버로부터 받은 데이터:", data);
+
+      // API 응답에서 받은 데이터로 상태를 업데이트합니다.
+      setUserName(data.uname);    // 사용자 이름 상태 업데이트
+      setTeams(data.team || []);    // 팀 목록 상태 업데이트
+
     } catch (error) {
       console.error("Error fetching teams:", error);
     }
@@ -58,6 +74,7 @@ const ProjectList: React.FC = () => {
   useEffect(() => {
     fetchTeams();
   }, [fetchTeams]);
+
 
   // 메뉴 외부 클릭 시 메뉴 닫기
   useEffect(() => {
@@ -74,7 +91,6 @@ const ProjectList: React.FC = () => {
 
   // 메시지 모달 열기
   const handleMailClick = async () => {
-    // 서버에 메시지 요청
     try {
       const response = await fetch(`${API_URL}/spring/api/users/message`, {
         method: "POST",
@@ -84,15 +100,17 @@ const ProjectList: React.FC = () => {
       if (!response.ok) {
         throw new Error(`서버 오류: ${response.status}`);
       }
+      // 새로운 MessageData 타입으로 데이터를 받습니다.
       const data: MessageData[] = await response.json();
-      console.log(data);
-      setMessages(data);
+      
+      // 데이터가 없을 경우를 대비해 항상 배열을 보장합니다.
+      setMessages(data || []);
       setShowMessage(true);
+
     } catch (e) {
       alert("메시지 불러오기에 실패했습니다.");
+      setMessages([]); // 에러 발생 시 빈 배열로 초기화
     }
-
-    setShowMessage(true);
   };
 
   // 메시지 모달 닫기
@@ -262,7 +280,7 @@ const ProjectList: React.FC = () => {
       <Body>
         <Sidebar>
           <SidebarTitle>
-            {userEmail ? `${userEmail}님의 프로젝트` : "○○○님의 프로젝트"}
+            {userName ? `${userName}님의 프로젝트` : "○○○님의 프로젝트"}
           </SidebarTitle>
           <SidebarList>
             {teams.length === 0 ? (
@@ -309,12 +327,12 @@ const ProjectList: React.FC = () => {
                         {message.content === 1 ? (
                           // 팀원 초대 요청 (content: 1)
                           <>
-                            <b>{message.senduid}</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
+                            <b>{message.senduname}({message.senduid})</b>님이 <b>{message.tname}</b>에 회원님을 팀원으로 요청하였습니다.
                           </>
                         ) : message.content === 3 ? (
                           // 팀 탈퇴 알림 (content: 3) - 새로 추가된 부분
                           <>
-                            <b>{message.senduid}</b>님이 <b>{message.tname}</b>에서 나갔습니다.
+                            <b>{message.senduname}({message.senduid})</b>님이 <b>{message.tname}</b>에서 나갔습니다.
                             <DismissButton onClick={() => handleDismiss(message)}>
                               ×
                             </DismissButton>
@@ -322,7 +340,7 @@ const ProjectList: React.FC = () => {
                         ) : (
                           // 그 외 (팀원 거절 등)
                           <>
-                            <b>{message.senduid}</b>님이 <b>{message.tname}</b>에 팀원을 거절하였습니다.
+                            <b>{message.senduname}({message.senduid})</b>님이 <b>{message.tname}</b> 팀 초대를 거절하였습니다.
                             <DismissButton onClick={() => handleDismiss(message)}>
                               ×
                             </DismissButton>

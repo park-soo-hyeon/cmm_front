@@ -30,6 +30,7 @@ ChartJS.register(
 // --- API 연동을 위한 타입 정의 ---
 type TeamMember = {
   uid: string;
+  uname: string; // 👈 사용자 이름 필드 추가
   score: number;
   attend: number;
   count: number;
@@ -65,7 +66,7 @@ const GRAPH_COLOR = {
 const TeamBarChart: React.FC<{ members: TeamMember[] }> = ({ members }) => {
   // useMemo를 사용해 members 데이터가 변경될 때만 차트 데이터를 다시 계산합니다.
   const chartData = useMemo(() => {
-    const labels = members.map(member => member.uid.split('@')[0]); // 이메일에서 ID 부분만 잘라서 사용
+    const labels = members.map(member => member.uname); 
     const scores = members.map(member => member.score);
 
     return {
@@ -177,10 +178,10 @@ const OverallScoreDonutChart: React.FC<{ members: TeamMember[] }> = ({ members }
 };
 
 // 📈 3. 회의 참석율 바 차트 컴포넌트를 새로 만듭니다.
-const AttendanceBarChart: React.FC<{ members: TeamMember[] }> = ({ members }) => {
+const AttendanceBarChart: React.FC<{ members: TeamMember[] ,totalMeetings: number }> = ({ members, totalMeetings }) => {
     
   const { chartData, maxCount } = useMemo(() => {
-    const labels = members.map(member => member.uid.split('@')[0]);
+    const labels = members.map(member => member.uname);
     const attendanceData = members.map(member => member.attend);
     // count 값 중 최댓값을 찾아 y축의 max로 사용합니다. 팀원이 없으면 기본값 10으로 설정합니다.
     const maxVal = members.length > 0 ? Math.max(...members.map(member => member.count)) : 10;
@@ -212,7 +213,7 @@ const AttendanceBarChart: React.FC<{ members: TeamMember[] }> = ({ members }) =>
     scales: {
       y: {
         beginAtZero: true,
-        max: maxCount, // Y축 최댓값을 동적으로 설정
+        max: totalMeetings, // Y축 최댓값을 동적으로 설정
         grid: { color: COLOR.border },
         ticks: { color: COLOR.subText, stepSize: 1 } // 정수 단위로 눈금 표시
       },
@@ -234,6 +235,7 @@ const Leader: React.FC = () => {
   // --- 상태 관리 (Mock Data 제거) ---
   const [teamName, setTeamName] = useState<string>("");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [totalMeetings, setTotalMeetings] = useState<number>(10);
   const [projects, setProjects] = useState(["2025년 3분기 신제품 기획", "하반기 마케팅 전략", "사용자 피드백 분석"]); // 프로젝트는 아직 Mock 데이터 유지
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -263,7 +265,9 @@ const Leader: React.FC = () => {
 
             // 👇 여기에 로그를 추가하여 API 응답 전체와 members 배열을 확인합니다.
             console.log('API에서 받은 전체 데이터:', data);
-            console.log('팀 멤버(members) 배열:', data.members);
+            setTeamName(data.tname);
+            setTotalMeetings(data.count || 10); // count가 없으면 기본값 10
+            setTeamMembers(data.members || []); // members가 없으면 빈 배열
 
             setTeamName(data.tname);
             setTeamMembers(data.members);
@@ -426,7 +430,7 @@ const Leader: React.FC = () => {
                 {teamMembers.map((member) => (
                   <ListItem key={member.uid}>
                     <MemberInfoContainer>
-                      <MemberUID>{member.uid}</MemberUID>
+                      <MemberUID>{member.uname}({member.uid})</MemberUID>
                       <MemberStats>
                         참여점수: {member.score} | 회의참석: {member.attend}회 
                       </MemberStats>
@@ -485,7 +489,7 @@ const Leader: React.FC = () => {
               {/* 📈 4. 기존 SVG를 새로운 Bar Chart 컴포넌트로 교체 */}
               <BarChartContainer>
                  {!loading && teamMembers.length > 0 ? (
-                  <AttendanceBarChart members={teamMembers} />
+                  <AttendanceBarChart members={teamMembers} totalMeetings={totalMeetings} />
                 ) : (
                   <EmptyListMessage>{loading ? "데이터 로딩 중..." : "표시할 팀원이 없습니다."}</EmptyListMessage>
                 )}
