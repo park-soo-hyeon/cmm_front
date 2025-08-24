@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 import { Socket } from "socket.io-client";
 import { ButtonGroup, CircleBtn, ResizeHandle } from './SharedStyles';
@@ -17,6 +17,7 @@ interface ImageBoxesProps {
   mainAreaRef: React.RefObject<HTMLDivElement | null>;
   socketRef: React.RefObject<Socket | null>;
   getMaxZIndex: () => number;
+  selectedProjectId: number | null;
 }
 
 const MIN_WIDTH = 50;
@@ -24,7 +25,7 @@ const MIN_HEIGHT = 50;
 
 const ImageBoxes: React.FC<ImageBoxesProps> = ({
   imageBoxes, setImageBoxes, focusedImageIdx, setFocusedImageIdx,
-  mainAreaRef, socketRef, getMaxZIndex,
+  mainAreaRef, socketRef, getMaxZIndex, selectedProjectId
 }) => {
   const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const resizeStart = React.useRef<{ startX: number; startY: number; startW: number; startH: number }>({ startX: 0, startY: 0, startW: 0, startH: 0 });
@@ -41,8 +42,12 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
   };
 
   const handleDelete = (idx: number) => {
+    if (!selectedProjectId) return;
     const node = imageBoxes[idx].node;
-    socketRef.current?.emit("imageEvent", { fnc: "delete", node, type: "image" });
+    socketRef.current?.emit("imageEvent", { 
+      fnc: "delete", node, type: "image",
+      pId: selectedProjectId
+    });
     setImageBoxes(prev => prev.filter((_, i) => i !== idx));
     if (focusedImageIdx === idx) setFocusedImageIdx(null);
   };
@@ -83,13 +88,15 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
     setImageBoxes(prev => prev.map((img, i) => i === idx ? { ...img, width: newWidth, height: newHeight } : img));
   };
   
-  const handleDragOrResizeEnd = () => {
+  const handleDragOrResizeEnd = useCallback(() => {
     const idx = draggingIdxRef.current ?? resizingIdxRef.current;
-    if (idx !== null) {
+    if (idx !== null && selectedProjectId !== null) {
       const img = imageBoxesRef.current[idx];
       socketRef.current?.emit("imageEvent", {
         fnc: "move", node: img.node, type: "image",
-        cLocate: { x: img.x, y: img.y }, cScale: { width: img.width, height: img.height }
+        pId: selectedProjectId,
+        cLocate: { x: img.x, y: img.y }, 
+        cScale: { width: img.width, height: img.height }
       });
     }
     draggingIdxRef.current = null;
@@ -97,7 +104,7 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
     window.removeEventListener("mousemove", handleDragging);
     window.removeEventListener("mousemove", handleResizing);
     window.removeEventListener("mouseup", handleDragOrResizeEnd);
-  };
+  }, [selectedProjectId, socketRef]);
 
   return (
     <>
@@ -111,7 +118,7 @@ const ImageBoxes: React.FC<ImageBoxesProps> = ({
           onMouseDown={() => bringToFront(idx)}
           onBlur={() => setFocusedImageIdx(cur => (cur === idx ? null : cur))}
         >
-          <img src={`/api/image/${img.node}/${img.pId}/${img.tId}`} alt="" style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }} draggable={false} />
+          <img src={`https://blanksync.kro.kr/node/api/image/${img.node}/${img.pId}/${img.tId}`} alt="" style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }} draggable={false} />
           {focusedImageIdx === idx && (
             <>
               <ButtonGroup>

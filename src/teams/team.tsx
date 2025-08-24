@@ -47,12 +47,8 @@ const Teams: React.FC = () => {
   const [teamId] = useState(1);
   
   const { socket } = useSocketManager(String(teamId), userId);
-  
-  // 🔽 **오류 수정: socketRef를 여기서 선언하고 socket 상태와 동기화합니다.**
   const socketRef = useRef<Socket | null>(null);
-  useEffect(() => {
-    socketRef.current = socket;
-  }, [socket]);
+  useEffect(() => { socketRef.current = socket; }, [socket]);
 
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, String(teamId), userId);
   const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
@@ -186,9 +182,38 @@ const Teams: React.FC = () => {
               </FloatingToolbar>
             </Draggable>
 
-            <TextBoxes textBoxes={textBoxes} setTextBoxes={setTextBoxes} focusedIdx={focusedIdx} setFocusedIdx={setFocusedIdx} mainAreaRef={mainAreaRef} socketRef={socketRef} toolbarRef={toolbarRef} getMaxZIndex={getMaxZIndex} />
-            <VoteBoxes voteBoxes={voteBoxes} setVoteBoxes={setVoteBoxes} focusedVoteIdx={focusedVoteIdx} setFocusedVoteIdx={setFocusedVoteIdx} mainAreaRef={mainAreaRef} socketRef={socketRef} getMaxZIndex={getMaxZIndex} userId={userId} />
-            <ImageBoxes imageBoxes={imageBoxes} setImageBoxes={setImageBoxes} focusedImageIdx={focusedImageIdx} setFocusedImageIdx={setFocusedImageIdx} mainAreaRef={mainAreaRef} socketRef={socketRef} getMaxZIndex={getMaxZIndex} />
+            <TextBoxes 
+              textBoxes={textBoxes} 
+              setTextBoxes={setTextBoxes} 
+              focusedIdx={focusedIdx} 
+              setFocusedIdx={setFocusedIdx} 
+              mainAreaRef={mainAreaRef} 
+              socketRef={socketRef} 
+              toolbarRef={toolbarRef} 
+              getMaxZIndex={getMaxZIndex} 
+              selectedProjectId={selectedProjectId} 
+            />
+            <VoteBoxes 
+              voteBoxes={voteBoxes} 
+              setVoteBoxes={setVoteBoxes} 
+              focusedVoteIdx={focusedVoteIdx} 
+              setFocusedVoteIdx={setFocusedVoteIdx} 
+              mainAreaRef={mainAreaRef} 
+              socketRef={socketRef} 
+              getMaxZIndex={getMaxZIndex} 
+              userId={userId} 
+              selectedProjectId={selectedProjectId}
+            />
+            <ImageBoxes 
+              imageBoxes={imageBoxes} 
+              setImageBoxes={setImageBoxes} 
+              focusedImageIdx={focusedImageIdx} 
+              setFocusedImageIdx={setFocusedImageIdx} 
+              mainAreaRef={mainAreaRef} 
+              socketRef={socketRef} 
+              getMaxZIndex={getMaxZIndex}
+              selectedProjectId={selectedProjectId}
+            />
             
             <VideoGrid localStream={localStream} remoteStreams={remoteStreams} />
             {Object.entries(cursors).map(([id, { x, y }]) => (<Cursor key={id} x={x} y={y} />))}

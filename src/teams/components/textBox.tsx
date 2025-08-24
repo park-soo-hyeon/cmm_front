@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 import { Socket } from "socket.io-client";
 import { ButtonGroup, CircleBtn, ResizeHandle } from './SharedStyles';
@@ -58,35 +58,34 @@ interface TextBoxesProps {
   socketRef: React.RefObject<Socket | null>;
   toolbarRef: React.RefObject<HTMLDivElement | null>;
   getMaxZIndex: () => number;
+  selectedProjectId: number | null; // 👈 **prop 타입 추가**
 }
 
 const TextBoxes: React.FC<TextBoxesProps> = ({
   getMaxZIndex, textBoxes, setTextBoxes, focusedIdx, setFocusedIdx,
-  mainAreaRef, socketRef, toolbarRef,
+  mainAreaRef, socketRef, toolbarRef, selectedProjectId // 👈 **prop 받기**
 }) => {
-  const [draggingIdx, setDraggingIdx] = React.useState<number | null>(null);
-  const [resizingIdx, setResizingIdx] = React.useState<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [resizingIdx, setResizingIdx] = useState<number | null>(null);
   
-  const inputRefs = React.useRef<(HTMLTextAreaElement | null)[]>([]);
-  const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const resizeStart = React.useRef<{ startX: number; startY: number; startW: number; startH: number }>({
+  const inputRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const resizeStart = useRef<{ startX: number; startY: number; startW: number; startH: number }>({
     startX: 0, startY: 0, startW: 0, startH: 0
   });
-  const textBoxesRef = React.useRef(textBoxes);
+  const textBoxesRef = useRef(textBoxes);
   textBoxesRef.current = textBoxes;
-  const draggingIdxRef = React.useRef(draggingIdx);
+  const draggingIdxRef = useRef(draggingIdx);
   draggingIdxRef.current = draggingIdx;
-  const resizingIdxRef = React.useRef(resizingIdx);
+  const resizingIdxRef = useRef(resizingIdx);
   resizingIdxRef.current = resizingIdx;
 
   const bringToFront = (idx: number) => {
     setTextBoxes(prev => {
       const maxZ = getMaxZIndex();
-      const newBoxes = prev.map((box, i) =>
+      return prev.map((box, i) =>
         i === idx ? { ...box, zIndex: maxZ + 1 } : box
       );
-      // 서버에도 zIndex 변경 이벤트 전송 (필요 시)
-      return newBoxes;
     });
   };
   
@@ -101,15 +100,15 @@ const TextBoxes: React.FC<TextBoxesProps> = ({
   const handleTextBoxChange = (idx: number, value: string) => {
     setTextBoxes(prev => prev.map((box, i) => (i === idx ? { ...box, text: value } : box)));
     const node = textBoxes[idx].node;
-    if (node) {
-      socketRef.current?.emit("textEvent", { fnc: "update", node, cContent: value, type: "text" });
+    if (node && selectedProjectId) {
+      socketRef.current?.emit("textEvent", { fnc: "update", node, cContent: value, type: "text", pId: selectedProjectId });
     }
   };
 
   const handleDelete = (idx: number) => {
     const node = textBoxes[idx].node;
-    if (node) {
-      socketRef.current?.emit("textEvent", { fnc: "delete", node, type: "text" });
+    if (node && selectedProjectId) {
+      socketRef.current?.emit("textEvent", { fnc: "delete", node, type: "text", pId: selectedProjectId });
     }
     setTextBoxes(prev => prev.filter((_, i) => i !== idx));
     if (focusedIdx === idx) setFocusedIdx(null);
@@ -153,11 +152,15 @@ const TextBoxes: React.FC<TextBoxesProps> = ({
 
   const handleDragOrResizeEnd = useCallback(() => {
     const idx = draggingIdxRef.current ?? resizingIdxRef.current;
-    if (idx !== null) {
+    if (idx !== null && selectedProjectId !== null) { // 👈 selectedProjectId 체크
       const box = textBoxesRef.current[idx];
       socketRef.current?.emit("textEvent", {
-        fnc: "move", node: box.node, type: "text",
-        cLocate: { x: box.x, y: box.y }, cScale: { width: box.width, height: box.height }
+        fnc: "move", 
+        node: box.node, 
+        type: "text",
+        pId: selectedProjectId, // 👈 **pId 추가**
+        cLocate: { x: box.x, y: box.y }, 
+        cScale: { width: box.width, height: box.height }
       });
     }
     setDraggingIdx(null);
@@ -165,7 +168,7 @@ const TextBoxes: React.FC<TextBoxesProps> = ({
     window.removeEventListener("mousemove", handleDragging);
     window.removeEventListener("mousemove", handleResizing);
     window.removeEventListener("mouseup", handleDragOrResizeEnd);
-  }, [handleDragging, handleResizing, socketRef]);
+  }, [handleDragging, handleResizing, socketRef, selectedProjectId]); // 👈 **의존성 배열에 추가**
 
   return (
     <>

@@ -20,6 +20,7 @@ interface VoteBoxesProps {
   mainAreaRef: React.RefObject<HTMLDivElement | null>;
   getMaxZIndex: () => number;
   userId: string;
+  selectedProjectId: number | null;
 }
 
 const MIN_WIDTH = 200;
@@ -27,7 +28,7 @@ const MIN_HEIGHT = 120;
 
 const VoteBoxes: React.FC<VoteBoxesProps> = ({
   voteBoxes, setVoteBoxes, focusedVoteIdx, setFocusedVoteIdx,
-  socketRef, mainAreaRef, getMaxZIndex, userId
+  socketRef, mainAreaRef, getMaxZIndex, userId, selectedProjectId
 }) => {
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const [resizingIdx, setResizingIdx] = useState<number | null>(null);
@@ -41,7 +42,6 @@ const VoteBoxes: React.FC<VoteBoxesProps> = ({
   const resizingIdxRef = useRef(resizingIdx);
   resizingIdxRef.current = resizingIdx;
   
-
   const bringToFront = (idx: number) => {
     setVoteBoxes(prev => {
       const maxZ = getMaxZIndex();
@@ -50,24 +50,32 @@ const VoteBoxes: React.FC<VoteBoxesProps> = ({
   };
 
   const handleVoteChoice = (voteIdx: number, num: number) => {
+    if (!selectedProjectId) return;
     const vote = voteBoxes[voteIdx];
     const alreadyVoted = vote.users.some(u => u.uId === userId && u.num === num);
     socketRef.current?.emit("voteEvent", {
       fnc: "choice", node: vote.node, type: "vote",
+      pId: selectedProjectId,
       num: alreadyVoted ? 0 : num,
     });
   };
 
   const handleVoteUpdate = (idx: number, newTitle: string, newList: VoteItem[]) => {
+    if (!selectedProjectId) return;
     setVoteBoxes(prev => prev.map((v, i) => i === idx ? { ...v, title: newTitle, list: newList } : v));
     socketRef.current?.emit("voteEvent", {
       fnc: "update", node: voteBoxes[idx].node, type: "vote",
+      pId: selectedProjectId,
       cTitle: newTitle, cList: newList,
     });
   };
 
   const handleDeleteVote = (idx: number) => {
-    socketRef.current?.emit("voteEvent", { fnc: "delete", node: voteBoxes[idx].node, type: "vote" });
+    if (!selectedProjectId) return;
+    socketRef.current?.emit("voteEvent", { 
+      fnc: "delete", node: voteBoxes[idx].node, type: "vote",
+      pId: selectedProjectId 
+    });
     setVoteBoxes(prev => prev.filter((_, i) => i !== idx));
     if (focusedVoteIdx === idx) setFocusedVoteIdx(null);
   };
@@ -110,10 +118,11 @@ const VoteBoxes: React.FC<VoteBoxesProps> = ({
 
   const handleDragOrResizeEnd = useCallback(() => {
     const idx = draggingIdxRef.current ?? resizingIdxRef.current;
-    if (idx !== null) {
+    if (idx !== null && selectedProjectId !== null) {
       const vote = voteBoxesRef.current[idx];
       socketRef.current?.emit("voteEvent", {
         fnc: "move", node: vote.node, type: "vote",
+        pId: selectedProjectId,
         cLocate: { x: vote.x, y: vote.y },
         cScale: { width: vote.width, height: vote.height },
       });
@@ -123,7 +132,7 @@ const VoteBoxes: React.FC<VoteBoxesProps> = ({
     window.removeEventListener("mousemove", handleDragging);
     window.removeEventListener("mousemove", handleResizing);
     window.removeEventListener("mouseup", handleDragOrResizeEnd);
-  }, [handleDragging, handleResizing, socketRef]);
+  }, [handleDragging, handleResizing, socketRef, selectedProjectId]);
 
   return (
     <>
@@ -178,4 +187,3 @@ const VoteItemBtn = styled.button<{ selected: boolean }>` min-width: 60px; paddi
 const VoteVoterCount = styled.div` position: absolute; right: 7px; top: 10px; font-size: 12px; color: #888; background: rgba(255,255,255,0.8); padding: 2px 8px; border-radius: 8px; `;
 
 export default VoteBoxes;
-
