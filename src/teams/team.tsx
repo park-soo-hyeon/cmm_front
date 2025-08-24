@@ -22,8 +22,6 @@ import ImageBoxes from "./components/ImageBox";
 import { VideoGrid } from './components/VideoGrid';
 
 const SOCKET_URL = "https://blanksync.kro.kr";
-
-// 타입 정의
 interface Project { pId: number; pName: string; createDate: string; }
 
 const Teams: React.FC = () => {
@@ -35,10 +33,8 @@ const Teams: React.FC = () => {
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-
   const [isTextMode, setIsTextMode] = useState(false);
   const [isVoteCreateMode, setIsVoteCreateMode] = useState(false);
-  
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [focusedVoteIdx, setFocusedVoteIdx] = useState<number | null>(null);
   const [focusedImageIdx, setFocusedImageIdx] = useState<number | null>(null);
@@ -51,8 +47,11 @@ const Teams: React.FC = () => {
   useEffect(() => { socketRef.current = socket; }, [socket]);
 
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, String(teamId), userId);
-  const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket);
+  
+  // useObjectManager에 userId를 전달하고, lastCreatedByMe를 받음
+  const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes, lastCreatedByMe } = useObjectManager(socket, userId);
 
+  // 프로젝트/커서 관련 useEffect
   useEffect(() => {
     if (!socket) return;
     socket.on('room-info', ({ projects: initialProjects }: { projects: Project[] }) => setProjects(initialProjects));
@@ -81,6 +80,17 @@ const Teams: React.FC = () => {
     return () => mainArea.removeEventListener('mousemove', handleMouseMove);
   }, [broadcastCursorPosition]);
 
+  // lastCreatedByMe를 감시하는 새 useEffect
+  useEffect(() => {
+    if (lastCreatedByMe) {
+      const newBoxIndex = textBoxes.findIndex((box: any) => box.node === lastCreatedByMe);
+      if (newBoxIndex > -1) {
+        setFocusedIdx(newBoxIndex);
+      }
+    }
+  }, [lastCreatedByMe, textBoxes]);
+
+  // 핸들러 함수들
   const handleSelectProject = useCallback((pId: number) => {
     if (selectedProjectId === pId) return;
     setSelectedProjectId(pId);
@@ -146,7 +156,7 @@ const Teams: React.FC = () => {
       console.error(err);
     }
   };
-
+  
   return (
     <Container>
       <SidebarContainer $isCollapsed={isSidebarCollapsed}>

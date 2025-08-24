@@ -6,8 +6,16 @@ type Cursors = { [userId: string]: { x: number; y: number } };
 export const useWebRTC = (socket: Socket | null, teamId: string, userId: string) => {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<{ [peerId: string]: MediaStream }>({});
+  
+  // 🔽 1. '보류 중인 스트림'을 위한 새로운 상태 추가
+  const [pendingStreams, setPendingStreams] = useState<{ [peerId: string]: MediaStream }>({});
+  
   const [cursors, setCursors] = useState<Cursors>({});
   const [inCall, setInCall] = useState(false);
+
+  // 🔽 이벤트 핸들러 안에서 최신 inCall 상태를 참조하기 위해 ref 사용
+  const inCallRef = useRef(inCall);
+  inCallRef.current = inCall;
 
   const peerConnections = useRef<{ [peerId: string]: RTCPeerConnection }>({});
   const dataChannels = useRef<{ [peerId: string]: RTCDataChannel }>({});
@@ -22,6 +30,12 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       delete dataChannels.current[peerId];
     }
     setRemoteStreams(prev => {
+      const newStreams = { ...prev };
+      delete newStreams[peerId];
+      return newStreams;
+    });
+    // 🔽 보류 중인 스트림에서도 해당 유저 정리
+    setPendingStreams(prev => {
       const newStreams = { ...prev };
       delete newStreams[peerId];
       return newStreams;
@@ -69,7 +83,7 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
         { urls: 'stun:stun.voipbuster.com:3478' },
         { urls: 'stun:stun.voipstunt.com:3478' },
         { urls: 'stun:stun.counterpath.net:3478' },
-        { // TURN 서버는 보통 username과 credential이 필요합니다.
+        {
           urls: 'turn:numb.viagenie.ca:3478',
           username: 'webrtc@live.com',
           credential: 'muazkh',
@@ -99,8 +113,18 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       }
     };
 
+    // 🔽 2. ontrack 이벤트 핸들러 수정
     pc.ontrack = event => {
-      setRemoteStreams(prev => ({ ...prev, [peerId]: event.streams[0] }));
+      console.log(`Track received from ${peerId}`);
+      // 내가 통화 중(inCall)이면 바로 화면에 표시
+      if (inCallRef.current) {
+        setRemoteStreams(prev => ({ ...prev, [peerId]: event.streams[0] }));
+      } 
+      // 내가 통화 중이 아니면, 보류 중인 스트림(pendingStreams)에 저장
+      else {
+        setPendingStreams(prev => ({ ...prev, [peerId]: event.streams[0] }));
+        console.log(`Stream from ${peerId} is pending.`);
+      }
     };
 
     pc.onconnectionstatechange = () => {
@@ -152,7 +176,9 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
     };
 
     const handleCandidate = async ({ from, candidate }: { from: string, candidate: RTCIceCandidateInit }) => {
-      await peerConnections.current[from]?.addIceCandidate(new RTCIceCandidate(candidate));
+        if (peerConnections.current[from]?.remoteDescription) {
+            await peerConnections.current[from]?.addIceCandidate(new RTCIceCandidate(candidate));
+        }
     };
 
     socket.on('existing-users', handleExistingUsers);
@@ -170,18 +196,26 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
     };
   }, [socket, userId, teamId]);
 
+  // 🔽 3. handleStartCall 함수 수정
   const handleStartCall = async () => {
     if (inCall) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
       setInCall(true);
+
+      // 보류 중이던 모든 스트림을 실제 화면에 표시
+      setRemoteStreams(prev => ({ ...prev, ...pendingStreams }));
+      // 보류 목록 비우기
+      setPendingStreams({});
+
       stream.getTracks().forEach(track => {
         Object.values(peerConnections.current).forEach(pc => pc.addTrack(track, stream));
       });
     } catch (err) { console.error("Failed to get media stream:", err); }
   };
 
+  // 🔽 4. handleEndCall 함수 수정
   const handleEndCall = () => {
     if (!localStream) return;
     Object.values(peerConnections.current).forEach(pc => {
@@ -190,6 +224,10 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
     localStream.getTracks().forEach(track => track.stop());
     setLocalStream(null);
     setInCall(false);
+
+    // 통화 종료 시 모든 원격 스트림(보류 포함)을 정리
+    setRemoteStreams({});
+    setPendingStreams({});
   };
 
   const broadcastCursorPosition = (x: number, y: number) => {
