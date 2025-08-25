@@ -1,33 +1,77 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 
-type TextBox = any;
-type VoteBox = any;
-type ImageBox = any;
+// 타입 정의
+interface TextBox {
+  node: string;
+  tId: string;
+  pId: number;
+  uId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  color: string;
+  font: string;
+  size: number;
+  zIndex?: number;
+  isOptimistic?: boolean;
+}
+
+interface VoteBox {
+  node: string; tId: string; pId: number; uId: string; x: number; y: number;
+  width: number; height: number; title: string; list: any[]; count: number[];
+  users: any[]; zIndex?: number;
+}
+
+interface ImageBox {
+  node: string; tId: string; pId: number; uId: string; x: number; y: number;
+  width: number; height: number; fileName: string; mimeType: string; zIndex?: number;
+}
+
 type VoteUser = { uId: string, num: number };
 
 export const useObjectManager = (socket: Socket | null, userId: string) => {
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   const [voteBoxes, setVoteBoxes] = useState<VoteBox[]>([]);
   const [imageBoxes, setImageBoxes] = useState<ImageBox[]>([]);
-  
-  // 내가 마지막으로 생성한 텍스트박스의 node ID를 저장할 상태
-  const [lastCreatedByMe, setLastCreatedByMe] = useState<string | null>(null);
 
   const onInit = useCallback((data: any) => {
     setTextBoxes(data.texts || []);
     setVoteBoxes(data.votes || []);
     setImageBoxes(data.images || []);
-    setLastCreatedByMe(null); // 프로젝트 변경 시 초기화
   }, []);
 
+  // 🔽 **핵심 수정: 상대방이 만든 박스가 추가되도록 로직 변경**
   const onAddTextBox = useCallback((data: any) => {
-    // 새로 추가된 박스의 생성자가 나(userId)인지 확인
-    if (data.uId === userId) {
-      // 맞다면, 해당 박스의 node ID를 상태에 저장
-      setLastCreatedByMe(data.node);
+    // 먼저 서버가 보내준 데이터로 완전한 객체를 만듭니다.
+    const newBoxFromServer: TextBox = {
+      node: data.node, tId: data.tId, pId: data.pId, uId: data.uId,
+      x: data.cLocate?.x || 10, y: data.cLocate?.y || 10,
+      width: data.cScale?.width || 200, height: data.cScale?.height || 40,
+      text: data.cContent || "", color: data.cColor || "#000000",
+      font: data.cFont || "Arial", size: data.cSize || 16,
+      zIndex: data.zIndex, isOptimistic: false
+    };
+
+    // 내가 보낸 요청에 대한 응답인지 확인 (uId와 tempNodeId 동시 확인)
+    if (data.uId === userId && data.tempNodeId) {
+      // 내가 만든 임시 객체를 서버가 보내준 실제 객체로 교체합니다.
+      setTextBoxes(prev => prev.map(box => 
+        box.node === data.tempNodeId ? newBoxFromServer : box
+      ));
+    } else {
+      // 다른 사람이 만든 객체이거나, 내 객체지만 tempNodeId가 없는 경우입니다.
+      // 중복을 방지하며 상태에 추가합니다.
+      setTextBoxes(prev => {
+        const boxExists = prev.some(box => box.node === newBoxFromServer.node);
+        if (!boxExists) {
+          return [...prev, newBoxFromServer];
+        }
+        return prev; // 이미 존재하면 아무것도 하지 않음
+      });
     }
-    setTextBoxes(prev => [...prev, data]);
   }, [userId]);
     
   const onUpdateTextBox = useCallback((data: any) => {
@@ -52,21 +96,36 @@ export const useObjectManager = (socket: Socket | null, userId: string) => {
   }, []);
     
   const onAddVote = useCallback((data: any) => {
-    setVoteBoxes(prev => [...prev, data]);
+    const newVote: VoteBox = {
+        node: data.node, tId: data.tId, pId: data.pId, uId: data.uId,
+        x: data.cLocate?.x || 10, y: data.cLocate?.y || 10,
+        width: data.cScale?.width || 300, height: data.cScale?.height || 200,
+        title: data.cTitle || "새 투표", list: data.cList || [],
+        count: data.count || [], users: data.users || [], zIndex: data.zIndex
+    };
+    setVoteBoxes(prev => {
+        const boxExists = prev.some(box => box.node === newVote.node);
+        if (!boxExists) return [...prev, newVote];
+        return prev;
+    });
   }, []);
+
   const onUpdateVote = useCallback((data: any) => {
     setVoteBoxes(prev => prev.map(box => 
       box.node === data.node ? { ...box, title: data.cTitle, list: data.cList } : box
     ));
   }, []);
+
   const onMoveVote = useCallback((data: any) => {
     setVoteBoxes(prev => prev.map(box => 
       box.node === data.node ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height } : box
     ));
   }, []);
+
   const onRemoveVote = useCallback((data: { node: string }) => {
     setVoteBoxes(prev => prev.filter(box => box.node !== data.node));
   }, []);
+
   const onChoiceVote = useCallback((data: any) => { 
     setVoteBoxes(prev => prev.map(box => { 
       if (box.node === data.node) { 
@@ -81,26 +140,28 @@ export const useObjectManager = (socket: Socket | null, userId: string) => {
   }, []);
     
   const onAddImage = useCallback((data: any) => {
-    setImageBoxes(prev => [...prev, data]);
+    const newImage: ImageBox = {
+        node: data.node, tId: data.tId, pId: data.pId, uId: data.uId,
+        x: data.cLocate?.x || 10, y: data.cLocate?.y || 10,
+        width: data.cScale?.width || 200, height: data.cScale?.height || 200,
+        fileName: data.fileName, mimeType: data.mimeType, zIndex: data.zIndex
+    };
+    setImageBoxes(prev => {
+        const boxExists = prev.some(box => box.node === newImage.node);
+        if (!boxExists) return [...prev, newImage];
+        return prev;
+    });
   }, []);
+
   const onMoveImage = useCallback((data: any) => {
     setImageBoxes(prev => prev.map(box => 
       box.node === data.node ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height } : box
     ));
   }, []);
+  
   const onRemoveImage = useCallback((data: { node: string }) => {
     setImageBoxes(prev => prev.filter(box => box.node !== data.node));
   }, []);
-
-  // lastCreatedByMe를 자동으로 초기화하는 useEffect
-  useEffect(() => {
-    if (lastCreatedByMe) {
-      const timer = setTimeout(() => {
-        setLastCreatedByMe(null);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [lastCreatedByMe]);
 
   useEffect(() => {
     if (!socket) return;
@@ -140,5 +201,5 @@ export const useObjectManager = (socket: Socket | null, userId: string) => {
       onAddVote, onUpdateVote, onMoveVote, onRemoveVote, onChoiceVote,
       onAddImage, onMoveImage, onRemoveImage]);
 
-  return { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes, lastCreatedByMe };
+  return { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes };
 };

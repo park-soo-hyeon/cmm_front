@@ -1,24 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 
-type Cursors = { [userId: string]: { x: number; y: number } };
+type Cursors = { [userId: string]: { x: number; y: number; color: string; } };
+type Participant = { id: string; color: string; };
 
-export const useWebRTC = (socket: Socket | null, teamId: string, userId: string) => {
+export const useWebRTC = (
+  socket: Socket | null, 
+  teamId: string, 
+  userId: string,
+  participants: Participant[]
+) => {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<{ [peerId: string]: MediaStream }>({});
-  
-  // 🔽 1. '보류 중인 스트림'을 위한 새로운 상태 추가
-  const [pendingStreams, setPendingStreams] = useState<{ [peerId: string]: MediaStream }>({});
-  
   const [cursors, setCursors] = useState<Cursors>({});
   const [inCall, setInCall] = useState(false);
 
-  // 🔽 이벤트 핸들러 안에서 최신 inCall 상태를 참조하기 위해 ref 사용
-  const inCallRef = useRef(inCall);
-  inCallRef.current = inCall;
-
   const peerConnections = useRef<{ [peerId: string]: RTCPeerConnection }>({});
   const dataChannels = useRef<{ [peerId: string]: RTCDataChannel }>({});
+
+  // 🔽 **핵심 수정 1: participants의 최신 값을 유지하기 위한 ref 생성**
+  const participantsRef = useRef(participants);
+  useEffect(() => {
+    participantsRef.current = participants;
+  }, [participants]);
 
   const cleanupPeerConnection = (peerId: string) => {
     console.log(`Cleaning up resources for peer: ${peerId}`);
@@ -30,12 +34,6 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       delete dataChannels.current[peerId];
     }
     setRemoteStreams(prev => {
-      const newStreams = { ...prev };
-      delete newStreams[peerId];
-      return newStreams;
-    });
-    // 🔽 보류 중인 스트림에서도 해당 유저 정리
-    setPendingStreams(prev => {
       const newStreams = { ...prev };
       delete newStreams[peerId];
       return newStreams;
@@ -60,7 +58,12 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       try {
         const data = JSON.parse(event.data);
         if (data.userId && data.userId !== userId) {
-          setCursors(prev => ({ ...prev, [data.userId]: { x: data.x, y: data.y } }));
+            // 🔽 **핵심 수정 2: state 대신 ref를 사용하여 최신 참여자 목록 참조**
+            const userColor = participantsRef.current.find(p => p.id === data.userId)?.color || '#6b5b95';
+            setCursors(prev => ({ 
+                ...prev, 
+                [data.userId]: { x: data.x, y: data.y, color: userColor } 
+            }));
         }
       } catch (error) {
         console.error("Failed to parse data channel message:", error);
@@ -91,7 +94,6 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       ],
     };
 
-
   const createPeerConnection = (peerId: string, isCaller: boolean) => {
     console.log(`Creating Peer Connection to ${peerId}. Am I the caller? ${isCaller}`);
     const pc = new RTCPeerConnection(iceServers);
@@ -113,21 +115,12 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       }
     };
 
-    // 🔽 2. ontrack 이벤트 핸들러 수정
     pc.ontrack = event => {
-      console.log(`Track received from ${peerId}`);
-      // 내가 통화 중(inCall)이면 바로 화면에 표시
-      if (inCallRef.current) {
-        setRemoteStreams(prev => ({ ...prev, [peerId]: event.streams[0] }));
-      } 
-      // 내가 통화 중이 아니면, 보류 중인 스트림(pendingStreams)에 저장
-      else {
-        setPendingStreams(prev => ({ ...prev, [peerId]: event.streams[0] }));
-        console.log(`Stream from ${peerId} is pending.`);
-      }
+      setRemoteStreams(prev => ({ ...prev, [peerId]: event.streams[0] }));
     };
 
     pc.onconnectionstatechange = () => {
+      console.log(`Connection state with ${peerId}: ${pc.connectionState}`);
       if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
         cleanupPeerConnection(peerId);
       }
@@ -156,7 +149,6 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       });
     };
     
-
     const handleUserLeft = ({ userId: peerId }: { userId: string }) => cleanupPeerConnection(peerId);
 
     const handleOffer = async ({ from, offer }: { from: string, offer: RTCSessionDescriptionInit }) => {
@@ -176,9 +168,9 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
     };
 
     const handleCandidate = async ({ from, candidate }: { from: string, candidate: RTCIceCandidateInit }) => {
-        if (peerConnections.current[from]?.remoteDescription) {
-            await peerConnections.current[from]?.addIceCandidate(new RTCIceCandidate(candidate));
-        }
+      if (peerConnections.current[from]?.remoteDescription) {
+        await peerConnections.current[from]?.addIceCandidate(new RTCIceCandidate(candidate));
+      }
     };
 
     socket.on('existing-users', handleExistingUsers);
@@ -194,28 +186,20 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
       socket.off('webrtc-answer', handleAnswer);
       socket.off('webrtc-candidate', handleCandidate);
     };
-  }, [socket, userId, teamId]);
+  }, [socket, userId, teamId]); // 🔽 **핵심 수정 3: 의존성 배열에서 participants 제거**
 
-  // 🔽 3. handleStartCall 함수 수정
   const handleStartCall = async () => {
     if (inCall) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
       setInCall(true);
-
-      // 보류 중이던 모든 스트림을 실제 화면에 표시
-      setRemoteStreams(prev => ({ ...prev, ...pendingStreams }));
-      // 보류 목록 비우기
-      setPendingStreams({});
-
       stream.getTracks().forEach(track => {
         Object.values(peerConnections.current).forEach(pc => pc.addTrack(track, stream));
       });
     } catch (err) { console.error("Failed to get media stream:", err); }
   };
 
-  // 🔽 4. handleEndCall 함수 수정
   const handleEndCall = () => {
     if (!localStream) return;
     Object.values(peerConnections.current).forEach(pc => {
@@ -224,10 +208,6 @@ export const useWebRTC = (socket: Socket | null, teamId: string, userId: string)
     localStream.getTracks().forEach(track => track.stop());
     setLocalStream(null);
     setInCall(false);
-
-    // 통화 종료 시 모든 원격 스트림(보류 포함)을 정리
-    setRemoteStreams({});
-    setPendingStreams({});
   };
 
   const broadcastCursorPosition = (x: number, y: number) => {
