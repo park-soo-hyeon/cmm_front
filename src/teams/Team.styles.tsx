@@ -85,25 +85,22 @@ export const Spacer = styled.div`
   flex-grow: 1;
 `;
 
-export const ParticipantContainer = styled.div<{ $userCount: number, $isExpanded: boolean }>`
+export const ParticipantContainer = styled.div`
   position: relative;
-  height: 32px;
-  cursor: pointer;
-  transition: width 0.3s ease-in-out;
-  width: ${({ $userCount, $isExpanded }) => $isExpanded 
-    ? `${$userCount * 32 + ($userCount > 1 ? ($userCount - 1) * 8 : 0) + ($userCount > 0 ? 100 : 0)}px`
-    : `${$userCount > 0 ? 32 + ($userCount - 1) * 20 : 0}px`
-  };
-`;
-
-export const UserAvatarWrapper = styled.div<{$index: number, $isExpanded: boolean}>`
-  position: absolute;
-  top: 0;
-  left: 0;
   display: flex;
   align-items: center;
-  transition: transform 0.3s ease-in-out;
-  transform: ${({ $index, $isExpanded }) => `translateX(${$isExpanded ? $index * 40 : $index * 20}px)`};
+  justify-content: flex-end;
+  height: 32px;
+  min-width: 32px;
+  cursor: pointer;
+`;
+
+export const OverlapAvatarWrapper = styled.div<{ index: number; }>`
+  position: absolute;
+  top: 0;
+  right: ${({ index }) => index * 14}px;
+  transition: right 0.3s ease-in-out;
+  z-index: ${({ index }) => 10 - index};
 `;
 
 export const UserAvatar = styled.div<{ color: string }>`
@@ -120,16 +117,37 @@ export const UserAvatar = styled.div<{ color: string }>`
   color: ${({ color }) => color};
   box-sizing: border-box;
   flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
 `;
 
-export const UserName = styled.span<{ $isExpanded: boolean }>`
-  opacity: ${({ $isExpanded }) => ($isExpanded ? 1 : 0)};
-  margin-left: 8px;
-  transition: opacity 0.2s 0.1s ease-in-out;
+export const ExpandedUserList = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translateX(105%);
+  
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  background: ${COLOR.card};
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 1px solid ${COLOR.border};
+  z-index: 100;
+  white-space: nowrap;
+`;
+
+export const UserListItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const UserName = styled.span`
   font-weight: 500;
   color: ${COLOR.text};
-  white-space: nowrap;
-  pointer-events: ${({ $isExpanded }) => ($isExpanded ? 'auto' : 'none')};
 `;
 
 export const ProjectList = styled.ul`
@@ -326,6 +344,71 @@ export const FloatingButton = styled.button`
   transition: background 0.18s;
   &:hover {
     background: ${COLOR.accentDark};
+  }
+`;
+
+export const ModalBackdrop = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+export const ModalContainer = styled.div`
+  background-color: ${COLOR.card};
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+export const ModalHeader = styled.div`
+  padding: 16px 24px;
+  border-bottom: 1px solid ${COLOR.border};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+
+  h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: ${COLOR.text};
+  }
+`;
+
+export const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: ${COLOR.subText};
+  padding: 4px;
+  line-height: 1;
+  &:hover {
+    color: ${COLOR.text};
+  }
+`;
+
+export const ModalContent = styled.div`
+  padding: 24px;
+  overflow-y: auto;
+  color: ${COLOR.text};
+  font-size: 1rem;
+  line-height: 1.6;
+
+  p {
+    margin: 0;
   }
 `;
 

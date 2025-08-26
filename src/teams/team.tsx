@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import Draggable from 'react-draggable';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // --- 스타일 컴포넌트 import ---
 import {
   Container, SidebarContainer, SidebarToggle, ProjectHeader, Spacer,
-  ParticipantContainer, UserAvatarWrapper, UserAvatar, UserName, ProjectList,
+  ParticipantContainer, OverlapAvatarWrapper, UserAvatar, UserName, ProjectList,
   ProjectItem, ProjectNameInput, ProjectActions, CreateProjectButton, MainArea, ProjectSelectPrompt,
   PromptText, FloatingToolbar, ToolIcon, FloatingButtonWrap,
-  CreateMenu, CreateMenuButton, FloatingButton, ImageIcon, PenIcon, Cursor
+  CreateMenu, CreateMenuButton, FloatingButton, ImageIcon, PenIcon, Cursor,
+  ExpandedUserList, UserListItem
 } from './Team.styles';
 
 // --- 커스텀 훅 및 컴포넌트 import ---
@@ -19,6 +21,7 @@ import TextBoxes from "./components/textBox";
 import VoteBoxes from "./components/voteBox";
 import ImageBoxes from "./components/ImageBox";
 import { VideoGrid } from './components/VideoGrid';
+import SummaryModal from './components/SummaryModal';
 
 const SOCKET_URL = "https://blanksync.kro.kr";
 
@@ -26,7 +29,9 @@ const SOCKET_URL = "https://blanksync.kro.kr";
 interface Project { pId: number; pName: string; createDate: string; }
 interface Participant { id: string; color: string; }
 interface TextBox {
-  node: string; tId: string; pId: number; uId: string; x: number; y: number;
+  node: string;
+  tId: string; // ✅ [수정됨] 이전과 동일한 string 형식 사용
+  pId: number; uId: string; x: number; y: number;
   width: number; height: number; text: string; color: string; font: string;
   size: number; zIndex?: number; isOptimistic?: boolean;
 }
@@ -51,6 +56,12 @@ const Teams: React.FC = () => {
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // ✅ [수정됨] 실제 ID를 받아와서 사용
+  const { userId, teamId } = location.state || {};
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -69,16 +80,52 @@ const Teams: React.FC = () => {
   const [focusedVoteIdx, setFocusedVoteIdx] = useState<number | null>(null);
   const [focusedImageIdx, setFocusedImageIdx] = useState<number | null>(null);
 
-  const [userId] = useState('user' + Math.floor(Math.random() * 1000));
-  const [teamId] = useState(1);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [summaryContent, setSummaryContent] = useState('');
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   
+  // ✅ [수정됨] 받아온 teamId를 이전과 동일한 '문자열' 형식으로 변환하여 전달
   const { socket } = useSocketManager(String(teamId), userId);
   const socketRef = useRef<Socket | null>(null);
   useEffect(() => { socketRef.current = socket; }, [socket]);
 
+  // ✅ [수정됨] 받아온 teamId를 이전과 동일한 '문자열' 형식으로 변환하여 전달
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, String(teamId), userId, participants);
   
   const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket, userId);
+  
+  const otherParticipants = participants.filter(p => p.id !== userId);
+
+  useEffect(() => {
+    if (!userId || !teamId) {
+      alert("잘못된 접근입니다. 프로젝트 목록으로 돌아갑니다.");
+      navigate('/projects');
+    }
+  }, [userId, teamId, navigate]);
+
+
+  useEffect(() => {
+    const area = mainAreaRef.current;
+    if (!area) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = area.getBoundingClientRect();
+      if (
+        e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom
+      ) {
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        broadcastCursorPosition(x, y);
+      }
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [broadcastCursorPosition]);
 
   useEffect(() => {
     if (!socket) return;
@@ -90,6 +137,10 @@ const Teams: React.FC = () => {
         }
         if (data.projects) {
             setProjects(data.projects);
+            const currentProject = data.projects.find(p => p.pId === teamId);
+            if (currentProject) {
+                setSelectedProjectId(currentProject.pId);
+            }
         }
     };
     
@@ -104,16 +155,23 @@ const Teams: React.FC = () => {
       setParticipants(prev => prev.filter(p => p.id !== leftUserId));
     };
 
+    const handleSummaryResult = ({ summary }: { summary: string }) => {
+      setSummaryContent(summary);
+      setIsSummaryLoading(false);
+    };
+
     socket.on('room-info', handleRoomInfo);
     socket.on('user-joined', handleUserJoined);
     socket.on('user-left', handleUserLeft);
+    socket.on('summarize-result', handleSummaryResult);
     
     return () => {
       socket.off('room-info', handleRoomInfo);
       socket.off('user-joined', handleUserJoined);
       socket.off('user-left', handleUserLeft);
+      socket.off('summarize-result', handleSummaryResult);
     };
-  }, [socket, userId]);
+  }, [socket, userId, teamId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -135,6 +193,18 @@ const Teams: React.FC = () => {
     };
   }, [socket, selectedProjectId, editingProjectId]);
   
+  const handleSummaryRequest = () => {
+    if (!socket || !selectedProjectId) {
+      alert("프로젝트를 먼저 선택해주세요.");
+      return;
+    }
+    setIsSummaryLoading(true);
+    setSummaryContent('');
+    setIsSummaryModalOpen(true);
+    setShowCreateMenu(false);
+    socket.emit('summarize-request', { pId: selectedProjectId });
+  };
+
   const handleStartEditing = (project: Project) => {
     setEditingProjectId(project.pId);
     setEditingProjectName(project.pName);
@@ -208,7 +278,9 @@ const Teams: React.FC = () => {
         setIsTextMode(false);
         const tempNodeId = `optimistic-${Date.now()}`;
         const optimisticBox: TextBox = {
-            node: tempNodeId, tId: String(teamId), pId: selectedProjectId, uId: userId,
+            node: tempNodeId,
+            tId: String(teamId), // ✅ [수정됨] 이전과 동일하게 string 형식으로 변환
+            pId: selectedProjectId, uId: userId,
             x, y, width: 200, height: 40, text: "", color: "#000000", font: "Arial", size: 16,
             isOptimistic: true
         };
@@ -232,7 +304,7 @@ const Teams: React.FC = () => {
     if (!file || !selectedProjectId) return;
     const formData = new FormData();
     formData.append("image", file);
-    formData.append("tId", String(teamId));
+    formData.append("tId", String(teamId)); // ✅ [수정됨] 이전과 동일하게 string 형식으로 변환
     formData.append("pId", String(selectedProjectId));
     formData.append("uId", userId);
     formData.append("cLocate", JSON.stringify({ x: 100, y: 100 }));
@@ -244,6 +316,10 @@ const Teams: React.FC = () => {
     }
   };
   
+  if (!userId || !teamId) {
+    return <div>프로젝트 정보를 불러오는 중...</div>;
+  }
+
   return (
     <Container>
       <SidebarContainer $isCollapsed={isSidebarCollapsed}>
@@ -251,20 +327,30 @@ const Teams: React.FC = () => {
           <h2>프로젝트 목록</h2>
           <Spacer />
           <ParticipantContainer 
-            $userCount={participants.length} 
-            $isExpanded={isUserListExpanded}
             onClick={() => setIsUserListExpanded(prev => !prev)}
           >
-            {participants.map((user, index) => (
-              <UserAvatarWrapper key={user.id} $isExpanded={isUserListExpanded} $index={index}>
+            {otherParticipants.map((user, index) => (
+              <OverlapAvatarWrapper key={user.id} index={index}>
                   <UserAvatar color={user.color}>
                       {user.id.charAt(0).toUpperCase()}
                   </UserAvatar>
-                  <UserName $isExpanded={isUserListExpanded}>{user.id}</UserName>
-              </UserAvatarWrapper>
+              </OverlapAvatarWrapper>
             ))}
+            {isUserListExpanded && (
+              <ExpandedUserList>
+                {otherParticipants.map(user => (
+                  <UserListItem key={user.id}>
+                    <UserAvatar color={user.color}>
+                      {user.id.charAt(0).toUpperCase()}
+                    </UserAvatar>
+                    <UserName>{user.id}</UserName>
+                  </UserListItem>
+                ))}
+              </ExpandedUserList>
+            )}
           </ParticipantContainer>
         </ProjectHeader>
+        
         <ProjectList>
           {projects.map(p => (
             <ProjectItem key={p.pId} $isSelected={selectedProjectId === p.pId} onClick={() => handleSelectProject(p.pId)}>
@@ -300,7 +386,12 @@ const Teams: React.FC = () => {
         {isSidebarCollapsed ? '▶' : '◀'}
       </SidebarToggle>
       
-      <MainArea ref={mainAreaRef} $isTextMode={isTextMode} $isVoteCreateMode={isVoteCreateMode} onClick={handleMainAreaClick}>
+      <MainArea 
+        ref={mainAreaRef} 
+        $isTextMode={isTextMode} 
+        $isVoteCreateMode={isVoteCreateMode} 
+        onClick={handleMainAreaClick}
+      >
         {selectedProjectId === null ? (
           <ProjectSelectPrompt><PromptText>👈 사이드바에서 참여할 프로젝트를 선택해주세요.</PromptText></ProjectSelectPrompt>
         ) : (
@@ -339,10 +430,21 @@ const Teams: React.FC = () => {
               <CreateMenu>
                   <CreateMenuButton onClick={() => { setIsVoteCreateMode(true); setShowCreateMenu(false); }}>투표</CreateMenuButton>
                   <CreateMenuButton onClick={inCall ? handleEndCall : handleStartCall}>{inCall ? '통화 종료' : '화상통화'}</CreateMenuButton>
+                  <CreateMenuButton onClick={handleSummaryRequest}>AI 요약</CreateMenuButton>
               </CreateMenu>
               )}
               <FloatingButton onClick={() => setShowCreateMenu((v) => !v)}>+</FloatingButton>
             </FloatingButtonWrap>
+
+            {isSummaryModalOpen && (
+              <SummaryModal onClose={() => setIsSummaryModalOpen(false)}>
+                {isSummaryLoading ? (
+                  <p>요약 내용을 생성 중입니다... 🤖</p>
+                ) : (
+                  <p>{summaryContent}</p>
+                )}
+              </SummaryModal>
+            )}
           </>
         )}
       </MainArea>
