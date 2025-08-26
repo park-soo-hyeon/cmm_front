@@ -2,6 +2,8 @@ import React from 'react';
 import styled from 'styled-components'; // styled-components import
 import { FaCalendar } from 'react-icons/fa6'; // react-icons에서 아이콘 가져오기
 
+console.log('Imported FaCalendar:', FaCalendar);
+
 // props 타입 정의 (변화 없음)
 interface Props {
   onClick: () => void;
