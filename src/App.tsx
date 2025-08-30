@@ -11,7 +11,7 @@ import Team from "./teams/team";
 import ProjectList from "./projectList";
 import Advice from "./advice";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Mypage from "./mypage";
 import LoginHandeler from "./login/loginHandeler";
 import NaverLoginHandeler from "./login/naverLoginHandeler";
@@ -27,34 +27,6 @@ import CalendarModal from "./components/CalendarModal";
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
   const navigate = useNavigate();
-
-  const handleLoginClick = () => {
-    navigate("/login");
-  };
-
-  const handleSignUpClick = () => {
-    navigate("/signup");
-  };
-
-  const handleCreateClick = () => {
-    navigate("/create");
-  };
-
-  const handleCreateTeam = () => {
-    navigate("/main");
-  };
-
-  const handleListClick = () => {
-    navigate("/projectList");
-  }
-
-  const handleAdviceClick = () => {
-    navigate("/advice");
-  }
-
-  const handleMypageClick = () => {
-    navigate("/mypage");
-  }
 
   return (
     <Container>
@@ -79,13 +51,21 @@ const MainComponent: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   // 캘린더 모달의 열림/닫힘 상태를 관리하는 state
   const [isCalendarOpen, setCalendarOpen] = useState<boolean>(false);
+  const { isLoggedIn } = useAuth(); 
+  const navigate = useNavigate(); // 페이지 이동을 위한 navigate 훅 사용
 
   // 모달을 여는 함수
   const handleOpenCalendar = () => {
-    setCalendarOpen(true);
+    if (isLoggedIn) { // 1. 로그인 상태 확인
+      setCalendarOpen(true); // 로그인 상태이면 모달 열기
+    } else {
+      // 2. 비로그인 상태이면 알림창 띄우고 로그인 페이지로 이동
+      alert('일정은 로그인 후 확인 가능합니다!');
+      navigate('/login');
+    }
   };
 
   // 모달을 닫는 함수
@@ -94,58 +74,68 @@ const App: React.FC = () => {
   };
   
   return (
+    <>
+      <FloatingButton onClick={handleOpenCalendar} />
+      <CalendarModal isOpen={isCalendarOpen} onClose={handleCloseCalendar} />
+      <Routes>
+        <Route path="/" element={<MainComponent />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/kakao/callback"
+          element={<LoginHandeler />}
+        />
+        <Route path="/naver/callback" element={<NaverLoginHandeler />} />
+        <Route path="/signup" element={<Terms />} />
+        <Route path="/signup2" element={<NewMember />} />
+        <Route
+          path="/create"
+          element={
+            <ProtectedRoute>
+              <Create />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute>
+              <Team />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projectList"
+          element={
+            <ProtectedRoute>
+              <ProjectList />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/advice" element={<Advice />} />
+        <Route path="/mypage" element={<Mypage />} />
+        <Route
+          path="/leader"
+          element={
+            <ProtectedRoute>
+              <Leader />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/traffic" element={<Traffic />} />
+        <Route path="/memberList" element={<MemberList />} />
+        <Route path="/teamList" element={<TeamList />} />
+      </Routes>
+    </>
+  );
+};
+
+// --- 최종 App 컴포넌트 ---
+const App: React.FC = () => {
+  return (
     <AuthProvider>
       <Router>
-        <FloatingButton onClick={handleOpenCalendar} />
-        <CalendarModal isOpen={isCalendarOpen} onClose={handleCloseCalendar} />
-        <Routes>
-          <Route path="/" element={<MainComponent />} />
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/kakao/callback" //redirect_url
-            element={<LoginHandeler />} //당신이 redirect_url에 맞춰 꾸밀 컴포넌트
-          />
-          <Route path="/naver/callback" element={<NaverLoginHandeler />} />
-          <Route path="/signup" element={<Terms />} />
-          <Route path="/signup2" element={<NewMember />} />
-          <Route
-            path="/create"
-            element={
-              <ProtectedRoute>
-                <Create />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/team"
-            element={
-              <ProtectedRoute>
-                <Team />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/projectList"
-            element={
-              <ProtectedRoute>
-                <ProjectList />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/advice" element={<Advice />} />
-          <Route path="/mypage" element={<Mypage />} />
-          <Route
-            path="/leader"
-            element={
-              <ProtectedRoute>
-                <Leader />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/traffic" element={<Traffic />} />
-          <Route path="/memberList" element={<MemberList />} />
-          <Route path="/teamList" element={<TeamList />} />
-        </Routes>
+        {/* 라우팅 관련 훅을 사용하기 위해 AppContent 컴포넌트로 분리 */}
+        <AppContent />
       </Router>
     </AuthProvider>
   );
@@ -255,7 +245,6 @@ const ImageBox = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 배경, 테두리, 그림자, 패딩 모두 제거 */
   background: none;
   border-radius: 0;
   box-shadow: none;
@@ -274,12 +263,10 @@ const MainImage = styled.img`
   min-width: 240px;
   border-radius: 20px;
   object-fit: cover;
-  /* 아래 두 줄을 주석 처리하거나 삭제 */
-  /* box-shadow: 0 4px 32px ${COLOR.imgShadow}; */
-  /* border: 2px solid ${COLOR.border}; */
   background: none;
   @media (max-width: 900px) {
     width: 70vw;
     max-width: 90vw;
   }
 `;
+
