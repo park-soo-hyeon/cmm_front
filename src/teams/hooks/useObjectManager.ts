@@ -32,7 +32,8 @@ interface ImageBox {
 
 type VoteUser = { uId: string, num: number };
 
-export const useObjectManager = (socket: Socket | null, userId: string) => {
+// ✅ [수정됨] selectedProjectId를 인자로 받습니다.
+export const useObjectManager = (socket: Socket | null, userId: string, selectedProjectId: number | null) => {
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   const [voteBoxes, setVoteBoxes] = useState<VoteBox[]>([]);
   const [imageBoxes, setImageBoxes] = useState<ImageBox[]>([]);
@@ -43,59 +44,59 @@ export const useObjectManager = (socket: Socket | null, userId: string) => {
     setImageBoxes(data.images || []);
   }, []);
 
-  // 🔽 **핵심 수정: 상대방이 만든 박스가 추가되도록 로직 변경**
   const onAddTextBox = useCallback((data: any) => {
-    // 먼저 서버가 보내준 데이터로 완전한 객체를 만듭니다.
+    if (data.pId !== selectedProjectId) return; // 필터링
     const newBoxFromServer: TextBox = {
       node: data.node, tId: data.tId, pId: data.pId, uId: data.uId,
       x: data.cLocate?.x || 10, y: data.cLocate?.y || 10,
       width: data.cScale?.width || 200, height: data.cScale?.height || 40,
       text: data.cContent || "", color: data.cColor || "#000000",
       font: data.cFont || "Arial", size: data.cSize || 16,
-      zIndex: data.zIndex, isOptimistic: false
+      zIndex: data.zIndex, 
+      isOptimistic: false
     };
-
-    // 내가 보낸 요청에 대한 응답인지 확인 (uId와 tempNodeId 동시 확인)
-    if (data.uId === userId && data.tempNodeId) {
-      // 내가 만든 임시 객체를 서버가 보내준 실제 객체로 교체합니다.
-      setTextBoxes(prev => prev.map(box => 
-        box.node === data.tempNodeId ? newBoxFromServer : box
-      ));
-    } else {
-      // 다른 사람이 만든 객체이거나, 내 객체지만 tempNodeId가 없는 경우입니다.
-      // 중복을 방지하며 상태에 추가합니다.
-      setTextBoxes(prev => {
-        const boxExists = prev.some(box => box.node === newBoxFromServer.node);
-        if (!boxExists) {
+    setTextBoxes(prev => {
+      const optimisticIndex = prev.findIndex(box => box.isOptimistic === true);
+      if (optimisticIndex > -1) {
+        const newState = [...prev];
+        newState[optimisticIndex] = newBoxFromServer;
+        return newState;
+      } else {
+        const exists = prev.some(box => box.node === newBoxFromServer.node);
+        if (!exists) {
           return [...prev, newBoxFromServer];
         }
-        return prev; // 이미 존재하면 아무것도 하지 않음
-      });
-    }
-  }, [userId]);
+      }
+      return prev;
+    });
+  }, [selectedProjectId]);
     
   const onUpdateTextBox = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setTextBoxes(prev => prev.map(box => box.node === data.node ? { ...box, 
         text: data.cContent !== undefined ? data.cContent : box.text,
         font: data.cFont !== undefined ? data.cFont : box.font,
         color: data.cColor !== undefined ? data.cColor : box.color,
         size: data.cSize !== undefined ? data.cSize : box.size
       } : box));
-  }, []);
+  }, [selectedProjectId]);
 
   const onMoveTextBox = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setTextBoxes(prev => prev.map(box => 
       box.node === data.node 
         ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height }
         : box
     ));
-  }, []);
+  }, [selectedProjectId]);
 
-  const onRemoveTextBox = useCallback((data: { node: string }) => {
+  const onRemoveTextBox = useCallback((data: { node: string, pId: number }) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setTextBoxes(prev => prev.filter(box => box.node !== data.node));
-  }, []);
+  }, [selectedProjectId]);
     
   const onAddVote = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     const newVote: VoteBox = {
         node: data.node, tId: data.tId, pId: data.pId, uId: data.uId,
         x: data.cLocate?.x || 10, y: data.cLocate?.y || 10,
@@ -108,25 +109,30 @@ export const useObjectManager = (socket: Socket | null, userId: string) => {
         if (!boxExists) return [...prev, newVote];
         return prev;
     });
-  }, []);
+  }, [selectedProjectId]);
 
   const onUpdateVote = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setVoteBoxes(prev => prev.map(box => 
       box.node === data.node ? { ...box, title: data.cTitle, list: data.cList } : box
     ));
-  }, []);
+  }, [selectedProjectId]);
 
   const onMoveVote = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setVoteBoxes(prev => prev.map(box => 
-      box.node === data.node ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height } : box
+      box.node === data.node ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height }
+      : box
     ));
-  }, []);
+  }, [selectedProjectId]);
 
-  const onRemoveVote = useCallback((data: { node: string }) => {
+  const onRemoveVote = useCallback((data: { node: string, pId: number }) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setVoteBoxes(prev => prev.filter(box => box.node !== data.node));
-  }, []);
+  }, [selectedProjectId]);
 
-  const onChoiceVote = useCallback((data: any) => { 
+  const onChoiceVote = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setVoteBoxes(prev => prev.map(box => { 
       if (box.node === data.node) { 
         const newUsers = [ 
@@ -137,9 +143,10 @@ export const useObjectManager = (socket: Socket | null, userId: string) => {
       } 
       return box; 
     }));
-  }, []);
+  }, [selectedProjectId]);
     
   const onAddImage = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     const newImage: ImageBox = {
         node: data.node, tId: data.tId, pId: data.pId, uId: data.uId,
         x: data.cLocate?.x || 10, y: data.cLocate?.y || 10,
@@ -151,17 +158,20 @@ export const useObjectManager = (socket: Socket | null, userId: string) => {
         if (!boxExists) return [...prev, newImage];
         return prev;
     });
-  }, []);
+  }, [selectedProjectId]);
 
   const onMoveImage = useCallback((data: any) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setImageBoxes(prev => prev.map(box => 
-      box.node === data.node ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height } : box
+      box.node === data.node ? { ...box, x: data.cLocate.x, y: data.cLocate.y, width: data.cScale.width, height: data.cScale.height }
+      : box
     ));
-  }, []);
+  }, [selectedProjectId]);
   
-  const onRemoveImage = useCallback((data: { node: string }) => {
+  const onRemoveImage = useCallback((data: { node: string, pId: number }) => {
+    if (data.pId !== selectedProjectId) return; // 필터링
     setImageBoxes(prev => prev.filter(box => box.node !== data.node));
-  }, []);
+  }, [selectedProjectId]);
 
   useEffect(() => {
     if (!socket) return;

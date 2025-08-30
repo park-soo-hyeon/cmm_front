@@ -58,12 +58,12 @@ interface TextBoxesProps {
   socketRef: React.RefObject<Socket | null>;
   toolbarRef: React.RefObject<HTMLDivElement | null>;
   getMaxZIndex: () => number;
-  selectedProjectId: number | null; // 👈 **prop 타입 추가**
+  selectedProjectId: number | null;
 }
 
 const TextBoxes: React.FC<TextBoxesProps> = ({
   getMaxZIndex, textBoxes, setTextBoxes, focusedIdx, setFocusedIdx,
-  mainAreaRef, socketRef, toolbarRef, selectedProjectId // 👈 **prop 받기**
+  mainAreaRef, socketRef, toolbarRef, selectedProjectId
 }) => {
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const [resizingIdx, setResizingIdx] = useState<number | null>(null);
@@ -97,21 +97,55 @@ const TextBoxes: React.FC<TextBoxesProps> = ({
     }
   }, [focusedIdx, textBoxes.length]);
 
+  // ✅ [수정됨] 타이밍 이슈를 해결하는 안정적인 로직으로 변경
   const handleTextBoxChange = (idx: number, value: string) => {
-    setTextBoxes(prev => prev.map((box, i) => (i === idx ? { ...box, text: value } : box)));
-    const node = textBoxes[idx].node;
-    if (node && selectedProjectId) {
-      socketRef.current?.emit("textEvent", { fnc: "update", node, cContent: value, type: "text", pId: selectedProjectId });
-    }
+    setTextBoxes(prev => {
+      // 1. 먼저 다음 상태를 만듭니다.
+      const newState = prev.map((box, i) => (i === idx ? { ...box, text: value } : box));
+      
+      // 2. 다음 상태에서 수정된 박스 정보를 가져옵니다.
+      const updatedBox = newState[idx];
+
+      // 3. 해당 박스에 영구 ID가 있고, 프로젝트가 선택된 상태인지 확인 후 서버로 이벤트를 보냅니다.
+      // 'optimistic-'으로 시작하는 임시 ID는 보내지 않습니다.
+      if (updatedBox?.node && !updatedBox.node.startsWith('optimistic-') && selectedProjectId) {
+        socketRef.current?.emit("textEvent", { 
+          fnc: "update", 
+          node: updatedBox.node, 
+          cContent: value, 
+          type: "text", 
+          pId: selectedProjectId 
+        });
+      }
+      
+      // 4. 마지막으로 새로운 상태를 반환합니다.
+      return newState;
+    });
   };
 
+  // ✅ [수정됨] 타이밍 이슈를 해결하는 안정적인 로직으로 변경
   const handleDelete = (idx: number) => {
-    const node = textBoxes[idx].node;
-    if (node && selectedProjectId) {
-      socketRef.current?.emit("textEvent", { fnc: "delete", node, type: "text", pId: selectedProjectId });
+    setTextBoxes(prev => {
+      // 1. 삭제할 박스 정보를 최신 상태에서 가져옵니다.
+      const boxToDelete = prev[idx];
+
+      // 2. 해당 박스에 영구 ID가 있는지 확인 후 서버로 이벤트를 보냅니다.
+      if (boxToDelete?.node && !boxToDelete.node.startsWith('optimistic-') && selectedProjectId) {
+        socketRef.current?.emit("textEvent", { 
+          fnc: "delete", 
+          node: boxToDelete.node, 
+          type: "text", 
+          pId: selectedProjectId 
+        });
+      }
+
+      // 3. 로컬 상태에서 박스를 제거한 새로운 배열을 반환합니다.
+      return prev.filter((_, i) => i !== idx);
+    });
+
+    if (focusedIdx === idx) {
+      setFocusedIdx(null);
     }
-    setTextBoxes(prev => prev.filter((_, i) => i !== idx));
-    if (focusedIdx === idx) setFocusedIdx(null);
   };
 
   const handleDragStart = (idx: number, e: React.MouseEvent) => {
@@ -152,23 +186,25 @@ const TextBoxes: React.FC<TextBoxesProps> = ({
 
   const handleDragOrResizeEnd = useCallback(() => {
     const idx = draggingIdxRef.current ?? resizingIdxRef.current;
-    if (idx !== null && selectedProjectId !== null) { // 👈 selectedProjectId 체크
+    if (idx !== null && selectedProjectId !== null) {
       const box = textBoxesRef.current[idx];
-      socketRef.current?.emit("textEvent", {
-        fnc: "move", 
-        node: box.node, 
-        type: "text",
-        pId: selectedProjectId, // 👈 **pId 추가**
-        cLocate: { x: box.x, y: box.y }, 
-        cScale: { width: box.width, height: box.height }
-      });
+      if (box.node && !box.node.startsWith('optimistic-')) {
+        socketRef.current?.emit("textEvent", {
+          fnc: "move", 
+          node: box.node, 
+          type: "text",
+          pId: selectedProjectId,
+          cLocate: { x: box.x, y: box.y }, 
+          cScale: { width: box.width, height: box.height }
+        });
+      }
     }
     setDraggingIdx(null);
     setResizingIdx(null);
     window.removeEventListener("mousemove", handleDragging);
     window.removeEventListener("mousemove", handleResizing);
     window.removeEventListener("mouseup", handleDragOrResizeEnd);
-  }, [handleDragging, handleResizing, socketRef, selectedProjectId]); // 👈 **의존성 배열에 추가**
+  }, [handleDragging, handleResizing, socketRef, selectedProjectId]);
 
   return (
     <>

@@ -30,7 +30,7 @@ interface Project { pId: number; pName: string; createDate: string; }
 interface Participant { id: string; color: string; }
 interface TextBox {
   node: string;
-  tId: string; // ✅ [수정됨] 이전과 동일한 string 형식 사용
+  tId: string;
   pId: number; uId: string; x: number; y: number;
   width: number; height: number; text: string; color: string; font: string;
   size: number; zIndex?: number; isOptimistic?: boolean;
@@ -59,7 +59,6 @@ const Teams: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // ✅ [수정됨] 실제 ID를 받아와서 사용
   const { userId, teamId } = location.state || {};
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -84,15 +83,14 @@ const Teams: React.FC = () => {
   const [summaryContent, setSummaryContent] = useState('');
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   
-  // ✅ [수정됨] 받아온 teamId를 이전과 동일한 '문자열' 형식으로 변환하여 전달
   const { socket } = useSocketManager(String(teamId), userId);
   const socketRef = useRef<Socket | null>(null);
   useEffect(() => { socketRef.current = socket; }, [socket]);
 
-  // ✅ [수정됨] 받아온 teamId를 이전과 동일한 '문자열' 형식으로 변환하여 전달
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, String(teamId), userId, participants);
   
-  const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket, userId);
+  // ✅ [수정됨] useObjectManager에 selectedProjectId를 전달합니다.
+  const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket, userId, selectedProjectId);
   
   const otherParticipants = participants.filter(p => p.id !== userId);
 
@@ -137,6 +135,8 @@ const Teams: React.FC = () => {
         }
         if (data.projects) {
             setProjects(data.projects);
+            // 페이지에 처음 진입 시, 전달받은 teamId를 기반으로 초기 프로젝트를 설정합니다.
+            // note: Project와 Team 개념이 혼용되고 있어 pId를 teamId로 간주합니다.
             const currentProject = data.projects.find(p => p.pId === teamId);
             if (currentProject) {
                 setSelectedProjectId(currentProject.pId);
@@ -279,7 +279,7 @@ const Teams: React.FC = () => {
         const tempNodeId = `optimistic-${Date.now()}`;
         const optimisticBox: TextBox = {
             node: tempNodeId,
-            tId: String(teamId), // ✅ [수정됨] 이전과 동일하게 string 형식으로 변환
+            tId: String(teamId),
             pId: selectedProjectId, uId: userId,
             x, y, width: 200, height: 40, text: "", color: "#000000", font: "Arial", size: 16,
             isOptimistic: true
@@ -304,7 +304,7 @@ const Teams: React.FC = () => {
     if (!file || !selectedProjectId) return;
     const formData = new FormData();
     formData.append("image", file);
-    formData.append("tId", String(teamId)); // ✅ [수정됨] 이전과 동일하게 string 형식으로 변환
+    formData.append("tId", String(teamId));
     formData.append("pId", String(selectedProjectId));
     formData.append("uId", userId);
     formData.append("cLocate", JSON.stringify({ x: 100, y: 100 }));
