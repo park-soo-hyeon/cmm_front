@@ -273,6 +273,8 @@ export const FloatingToolbar = styled.div`
   z-index: 100;
   cursor: move;
   border: 1px solid ${COLOR.border};
+  height: 44px;
+  box-sizing: border-box;
 `;
 
 export const ToolIcon = styled.button`
@@ -409,6 +411,44 @@ export const ModalContent = styled.div`
 
   p {
     margin: 0;
+  }
+`;
+
+export const ToolbarLabel = styled.span`
+  font-size: 0.9rem;
+  color: ${COLOR.subText};
+`;
+
+export const ToolbarInput = styled.input`
+  width: 50px;
+  border: 1px solid ${COLOR.border};
+  border-radius: 4px;
+  padding: 4px;
+  background: white;
+  color: ${COLOR.text};
+  font-size: 0.9rem;
+  &:focus {
+    outline: none;
+    border-color: ${COLOR.accent};
+  }
+`;
+
+export const ToolbarColorInput = styled(ToolbarInput)`
+  width: 30px;
+  padding: 2px;
+  cursor: pointer;
+`;
+
+export const ToolbarSelect = styled.select`
+  border: 1px solid ${COLOR.border};
+  border-radius: 4px;
+  padding: 4px 6px;
+  background: white;
+  color: ${COLOR.text};
+  font-size: 0.9rem;
+  &:focus {
+    outline: none;
+    border-color: ${COLOR.accent};
   }
 `;
 

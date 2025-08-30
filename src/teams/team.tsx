@@ -10,7 +10,8 @@ import {
   ProjectItem, ProjectNameInput, ProjectActions, CreateProjectButton, MainArea, ProjectSelectPrompt,
   PromptText, FloatingToolbar, ToolIcon, FloatingButtonWrap,
   CreateMenu, CreateMenuButton, FloatingButton, ImageIcon, PenIcon, Cursor,
-  ExpandedUserList, UserListItem
+  ExpandedUserList, UserListItem,
+  ToolbarLabel, ToolbarInput, ToolbarColorInput, ToolbarSelect
 } from './Team.styles';
 
 // --- 커스텀 훅 및 컴포넌트 import ---
@@ -89,10 +90,33 @@ const Teams: React.FC = () => {
 
   const { inCall, localStream, remoteStreams, cursors, handleStartCall, handleEndCall, broadcastCursorPosition } = useWebRTC(socket, String(teamId), userId, participants);
   
-  // ✅ [수정됨] useObjectManager에 selectedProjectId를 전달합니다.
   const { textBoxes, setTextBoxes, voteBoxes, setVoteBoxes, imageBoxes, setImageBoxes } = useObjectManager(socket, userId, selectedProjectId);
   
   const otherParticipants = participants.filter(p => p.id !== userId);
+
+  const currentBox = focusedIdx !== null ? textBoxes[focusedIdx] : null;
+
+  const handleAttributeChange = (attribute: 'size' | 'color' | 'font', value: any) => {
+    setTextBoxes(prev => {
+      const boxToUpdate = prev[focusedIdx!];
+
+      if (boxToUpdate && boxToUpdate.node && !boxToUpdate.node.startsWith('optimistic-') && selectedProjectId) {
+        socketRef.current?.emit("textEvent", {
+          fnc: "update",
+          node: boxToUpdate.node,
+          type: "text",
+          pId: selectedProjectId,
+          ...(attribute === 'size' && { cSize: Number(value) }),
+          ...(attribute === 'color' && { cColor: value }),
+          ...(attribute === 'font' && { cFont: value }),
+        });
+      }
+      
+      return prev.map((box, index) =>
+        index === focusedIdx ? { ...box, [attribute]: value } : box
+      );
+    });
+  };
 
   useEffect(() => {
     if (!userId || !teamId) {
@@ -135,8 +159,6 @@ const Teams: React.FC = () => {
         }
         if (data.projects) {
             setProjects(data.projects);
-            // 페이지에 처음 진입 시, 전달받은 teamId를 기반으로 초기 프로젝트를 설정합니다.
-            // note: Project와 Team 개념이 혼용되고 있어 pId를 teamId로 간주합니다.
             const currentProject = data.projects.find(p => p.pId === teamId);
             if (currentProject) {
                 setSelectedProjectId(currentProject.pId);
@@ -270,33 +292,39 @@ const Teams: React.FC = () => {
   };
   
   const handleMainAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!mainAreaRef.current || !socket || e.target !== mainAreaRef.current || !selectedProjectId) return;
-      const rect = mainAreaRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      if (isTextMode) {
-        setIsTextMode(false);
-        const tempNodeId = `optimistic-${Date.now()}`;
-        const optimisticBox: TextBox = {
-            node: tempNodeId,
-            tId: String(teamId),
-            pId: selectedProjectId, uId: userId,
-            x, y, width: 200, height: 40, text: "", color: "#000000", font: "Arial", size: 16,
-            isOptimistic: true
-        };
-        setTextBoxes(prev => [...prev, optimisticBox]);
-        setFocusedIdx(textBoxes.length);
-        socket.emit("textEvent", { 
-            fnc: "new", type: "text", pId: selectedProjectId, 
-            cLocate: { x, y }, cScale: { width: 200, height: 40 }, 
-            cContent: "", cFont: "Arial", cColor: "#000000", cSize: 16,
-            tempNodeId: tempNodeId
-        });
-      }
-      if (isVoteCreateMode) {
-        socket.emit("voteEvent", { fnc: "new", type: "vote", pId: selectedProjectId, cLocate: { x, y }, cScale: { width: 300, height: 200 }, cTitle: "새 투표", cList: [{ content: "" }, { content: "" }] });
-        setIsVoteCreateMode(false);
-      }
+    if (e.target === mainAreaRef.current) {
+      setFocusedIdx(null);
+      setFocusedImageIdx(null);
+      setFocusedVoteIdx(null);
+    }
+      
+    if (!mainAreaRef.current || !socket || e.target !== mainAreaRef.current || !selectedProjectId) return;
+    const rect = mainAreaRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (isTextMode) {
+      setIsTextMode(false);
+      const tempNodeId = `optimistic-${Date.now()}`;
+      const optimisticBox: TextBox = {
+          node: tempNodeId,
+          tId: String(teamId),
+          pId: selectedProjectId, uId: userId,
+          x, y, width: 200, height: 40, text: "", color: "#000000", font: "Arial", size: 16,
+          isOptimistic: true
+      };
+      setTextBoxes(prev => [...prev, optimisticBox]);
+      setFocusedIdx(textBoxes.length);
+      socket.emit("textEvent", { 
+          fnc: "new", type: "text", pId: selectedProjectId, 
+          cLocate: { x, y }, cScale: { width: 200, height: 40 }, 
+          cContent: "", cFont: "Arial", cColor: "#000000", cSize: 16,
+          tempNodeId: tempNodeId
+      });
+    }
+    if (isVoteCreateMode) {
+      socket.emit("voteEvent", { fnc: "new", type: "vote", pId: selectedProjectId, cLocate: { x, y }, cScale: { width: 300, height: 200 }, cTitle: "새 투표", cList: [{ content: "" }, { content: "" }] });
+      setIsVoteCreateMode(false);
+    }
   };
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -398,9 +426,42 @@ const Teams: React.FC = () => {
           <>
             <Draggable nodeRef={toolbarRef as React.RefObject<HTMLElement>} bounds="parent">
               <FloatingToolbar ref={toolbarRef}>
-                <ToolIcon onClick={() => setIsTextMode(prev => !prev)} title="텍스트 상자 생성"><p style={{fontWeight: isTextMode ? 'bold' : 'normal'}}>T</p></ToolIcon>
-                <ToolIcon onClick={() => fileInputRef.current?.click()}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
-                <ToolIcon><PenIcon /></ToolIcon>
+                {focusedIdx === null ? (
+                  <>
+                    <ToolIcon onClick={() => setIsTextMode(prev => !prev)} title="텍스트 상자 생성"><p style={{fontWeight: isTextMode ? 'bold' : 'normal'}}>T</p></ToolIcon>
+                    <ToolIcon onClick={() => fileInputRef.current?.click()}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
+                    <ToolIcon><PenIcon /></ToolIcon>
+                  </>
+                ) : (
+                  currentBox && (
+                    <>
+                      <ToolbarLabel>크기:</ToolbarLabel>
+                      <ToolbarInput
+                        type="number"
+                        value={currentBox.size}
+                        onChange={(e) => handleAttributeChange('size', e.target.value)}
+                        min="1"
+                      />
+                      <ToolbarLabel>색상:</ToolbarLabel>
+                      <ToolbarColorInput
+                        type="color"
+                        value={currentBox.color}
+                        onChange={(e) => handleAttributeChange('color', e.target.value)}
+                      />
+                      <ToolbarLabel>폰트:</ToolbarLabel>
+                      <ToolbarSelect
+                        value={currentBox.font}
+                        onChange={(e) => handleAttributeChange('font', e.target.value)}
+                      >
+                        <option value="Arial">Arial</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                        <option value="'Courier New', Courier, monospace">Courier New</option>
+                      </ToolbarSelect>
+                    </>
+                  )
+                )}
               </FloatingToolbar>
             </Draggable>
 
