@@ -1,6 +1,7 @@
-import React from "react";
+import React, {useState} from "react";
 import styled from "styled-components";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import 'react-calendar/dist/Calendar.css';
 import Login from "./login/login"; // login.tsx 파일 import
 import Header from "./header"; // header.tsx 파일 import
 import Terms from "./login/terms";
@@ -18,14 +19,13 @@ import Leader from "./leader";
 import Traffic from "./admin/traffic";
 import MemberList from "./admin/memberList";
 import TeamList from "./admin/teamList";
+import FloatingButton from "./components/FloatingButton";
+import CalendarModal from "./components/CalendarModal";
 
 
 
 // 라우팅 없는 메인 컴포넌트
 const MainComponent: React.FC = () => {
-
-  
-  
   const navigate = useNavigate();
 
   const handleLoginClick = () => {
@@ -80,9 +80,24 @@ const MainComponent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  // 캘린더 모달의 열림/닫힘 상태를 관리하는 state
+  const [isCalendarOpen, setCalendarOpen] = useState<boolean>(false);
+
+  // 모달을 여는 함수
+  const handleOpenCalendar = () => {
+    setCalendarOpen(true);
+  };
+
+  // 모달을 닫는 함수
+  const handleCloseCalendar = () => {
+    setCalendarOpen(false);
+  };
+  
   return (
     <AuthProvider>
       <Router>
+        <FloatingButton onClick={handleOpenCalendar} />
+        <CalendarModal isOpen={isCalendarOpen} onClose={handleCloseCalendar} />
         <Routes>
           <Route path="/" element={<MainComponent />} />
           <Route path="/login" element={<Login />} />
@@ -268,6 +283,3 @@ const MainImage = styled.img`
     max-width: 90vw;
   }
 `;
-
-
-
