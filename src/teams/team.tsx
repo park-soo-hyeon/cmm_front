@@ -23,6 +23,7 @@ import VoteBoxes from "./components/voteBox";
 import ImageBoxes from "./components/ImageBox";
 import { VideoGrid } from './components/VideoGrid';
 import SummaryModal from './components/SummaryModal';
+import Calendar from './components/Calendar'; // ✅ Calendar 컴포넌트 import
 
 const SOCKET_URL = "https://blanksync.kro.kr";
 
@@ -355,9 +356,10 @@ const Teams: React.FC = () => {
           <h2>프로젝트 목록</h2>
           <Spacer />
           <ParticipantContainer 
-            onClick={() => setIsUserListExpanded(prev => !prev)}
+            onMouseEnter={() => setIsUserListExpanded(true)}
+            onMouseLeave={() => setIsUserListExpanded(false)}
           >
-            {otherParticipants.map((user, index) => (
+            {otherParticipants.slice(0, 4).map((user, index) => (
               <OverlapAvatarWrapper key={user.id} index={index}>
                   <UserAvatar color={user.color}>
                       {user.id.charAt(0).toUpperCase()}
@@ -366,7 +368,7 @@ const Teams: React.FC = () => {
             ))}
             {isUserListExpanded && (
               <ExpandedUserList>
-                {otherParticipants.map(user => (
+                {participants.map(user => (
                   <UserListItem key={user.id}>
                     <UserAvatar color={user.color}>
                       {user.id.charAt(0).toUpperCase()}
@@ -407,6 +409,9 @@ const Teams: React.FC = () => {
             </ProjectItem>
           ))}
         </ProjectList>
+        
+        <Calendar />
+
         <CreateProjectButton onClick={handleCreateProject}>+ 새 프로젝트 생성</CreateProjectButton>
       </SidebarContainer>
 
@@ -428,9 +433,9 @@ const Teams: React.FC = () => {
               <FloatingToolbar ref={toolbarRef}>
                 {focusedIdx === null ? (
                   <>
-                    <ToolIcon onClick={() => setIsTextMode(prev => !prev)} title="텍스트 상자 생성"><p style={{fontWeight: isTextMode ? 'bold' : 'normal'}}>T</p></ToolIcon>
-                    <ToolIcon onClick={() => fileInputRef.current?.click()}><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
-                    <ToolIcon><PenIcon /></ToolIcon>
+                    <ToolIcon onClick={() => setIsTextMode(prev => !prev)} title="텍스트 상자 생성">T</ToolIcon>
+                    <ToolIcon onClick={() => fileInputRef.current?.click()} title="이미지 추가"><ImageIcon /><input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} /></ToolIcon>
+                    <ToolIcon title="그리기"><PenIcon /></ToolIcon>
                   </>
                 ) : (
                   currentBox && (

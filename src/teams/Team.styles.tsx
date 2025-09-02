@@ -29,7 +29,7 @@ export const Container = styled.div`
 `;
 
 export const SidebarContainer = styled.aside<{ $isCollapsed: boolean }>`
-  width: 280px;
+  width: 220px;
   background-color: ${COLOR.card};
   border-right: 1px solid ${COLOR.border};
   padding: 24px;
