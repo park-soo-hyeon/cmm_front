@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import './css/memberList.css';
 import Header from '../header';
+import { data } from 'react-router-dom';
 
 // API 주소
 const API_URL = process.env.REACT_APP_API_URL;
