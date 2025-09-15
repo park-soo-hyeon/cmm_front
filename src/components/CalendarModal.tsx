@@ -86,6 +86,13 @@ const SwitchInput = styled.input`
   &:checked + ${SwitchSlider} { background-color: #B8B6F2; }
   &:checked + ${SwitchSlider}:before { transform: translateX(20px); }
 `;
+const DetailButtonContainer = styled.div`
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;
+`;
+const DetailButton = styled.button`
+  padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid #ccc;
+  background-color: #fff; cursor: pointer; &:hover { background-color: #f0f0f0; }
+`;
 
 // --- 헬퍼 함수 ---
 interface Props { isOpen: boolean; onClose: () => void; }
@@ -103,6 +110,7 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isAddingEvent, setIsAddingEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
   const [newEvent, setNewEvent] = useState({
     title: '', description: '', startDate: new Date(),
@@ -116,12 +124,16 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
     return tIdColorMap.get(tId)!;
   }, [tIdColorMap]);
   
+  // ==================================================================
+  // ====================== 주요 변경 사항 ==============================
+  // ==================================================================
   const fetchEvents = useCallback(async (date: Date) => {
     if (!userEmail) return; 
     setLoading(true);
+
+    /* // --- 실제 API 호출 코드 (주석 처리) ---
     const dateParam = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-    
-    const url = `${API_URL}/spring/calender?uid=${encodeURIComponent(userEmail)}&date=${encodeURIComponent(dateParam)}`;
+    const url = `${API_URL}/api/calender?uId=${encodeURIComponent(userEmail)}&date=${encodeURIComponent(dateParam)}`;
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -136,11 +148,45 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
     } catch (error) { console.error("캘린더 데이터를 가져오는 데 실패했습니다:", error); } 
     finally { setLoading(false); }
+    */
+
+
+    // --- 더미 데이터 시작 (테스트 후 이 블록을 삭제하고 위 코드를 주석 해제하세요) ---
+    console.log("더미 데이터를 로드합니다.");
+    
+    // 현재 월을 기준으로 동적으로 더미 데이터 생성
+    const currentYear = date.getFullYear();
+    const currentMonth = (date.getMonth() + 1).toString().padStart(2, '0');
+
+    const dummyData = [
+      { eventId: 1, tId: 101, title: "팀 회의", description: "주간 성과 리뷰", startDate: `${currentYear}-${currentMonth}-05T10:00:00`, endDate: `${currentYear}-${currentMonth}-05T11:30:00`, isAllDay: false },
+      { eventId: 2, tId: 102, title: "프로젝트 마감", description: "최종 보고서 제출", startDate: `${currentYear}-${currentMonth}-10T00:00:00`, endDate: `${currentYear}-${currentMonth}-10T23:59:59`, isAllDay: true },
+      { eventId: 3, tId: null, title: "개인 약속", description: "병원 방문", startDate: `${currentYear}-${currentMonth}-15T14:00:00`, endDate: `${currentYear}-${currentMonth}-15T15:00:00`, isAllDay: false },
+      { eventId: 4, tId: 101, title: "장기 프로젝트", description: "1단계 개발 기간", startDate: `${currentYear}-${currentMonth}-18T09:00:00`, endDate: `${currentYear}-${currentMonth}-22T18:00:00`, isAllDay: false },
+      { eventId: 5, tId: 103, title: "워크샵", description: "전사 워크샵", startDate: `${currentYear}-${currentMonth}-25T09:00:00`, endDate: `${currentYear}-${currentMonth}-26T17:00:00`, isAllDay: false },
+    ];
+    
+    // 실제 API 호출처럼 약간의 딜레이를 줍니다.
+    setTimeout(() => {
+        const processedEvents: CalendarEvent[] = dummyData.map(event => ({
+            ...event,
+            startDate: new Date(event.startDate),
+            endDate: new Date(event.endDate)
+        }));
+        setEvents(processedEvents);
+        setLoading(false);
+    }, 500); // 0.5초 딜레이
+    // --- 더미 데이터 끝 ---
+
   }, [userEmail]);
 
   useEffect(() => {
     if (isOpen) { fetchEvents(activeDate); } 
-    else { setSelectedDate(null); setIsAddingEvent(false); }
+    else { 
+      setSelectedDate(null); 
+      setIsAddingEvent(false);
+      setEditingEvent(null);
+    }
   }, [isOpen, activeDate, fetchEvents]);
   
   const handleShowAddForm = () => {
@@ -187,12 +233,66 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
     } catch (error) { console.error(error); alert(String(error)); }
   };
 
+  const handleEditEventChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (!editingEvent) return;
+    const { name, value, type } = e.target;
+    const isCheckbox = type === 'checkbox';
+
+    setEditingEvent({
+      ...editingEvent,
+      [name]: isCheckbox ? (e.target as HTMLInputElement).checked : (name === 'startDate' || name === 'endDate' ? new Date(value) : value)
+    });
+  };
+
+  const handleUpdateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEvent) { alert("수정할 일정이 없습니다."); return; }
+
+    const payload = {
+      eventId: editingEvent.eventId,
+      uId: userEmail,
+      title: editingEvent.title,
+      description: editingEvent.description,
+      startDate: editingEvent.startDate,
+      endDate: editingEvent.endDate,
+      isAllDay: editingEvent.isAllDay,
+    };
+
+    try {
+      const response = await fetch(`${API_URL}/spring/calender/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error("일정 수정에 실패했습니다.");
+      setEditingEvent(null); // 수정 모드 종료
+      await fetchEvents(activeDate); // 최신 정보로 캘린더 새로고침
+    } catch (error) { console.error(error); alert(String(error)); }
+  };
+
+  const handleDeleteEvent = async (eventId: number) => {
+    if (!window.confirm("정말로 이 일정을 삭제하시겠습니까?")) return;
+
+    try {
+      const response = await fetch(`${API_URL}/spring/calender/delete?eventId=${eventId}`, {
+        method: 'GET' // 명시적으로 GET으로 설정 (기본값이 GET이긴 함)
+      });
+      if (!response.ok) throw new Error("일정 삭제에 실패했습니다.");
+      setSelectedDate(null); // 우측 패널 닫기
+      await fetchEvents(activeDate); // 최신 정보로 캘린더 새로고침
+    } catch (error) { console.error(error); alert(String(error)); }
+  };
+
   const handleActiveStartDateChange = ({ activeStartDate }: { activeStartDate: Date | null }) => { if (activeStartDate) setActiveDate(activeStartDate); };
   const handleDateClick = (date: Date) => {
     const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999);
     const hasEvents = events.some(event => event.startDate <= dayEnd && event.endDate >= dayStart);
-    if (hasEvents) { setSelectedDate(date); setIsAddingEvent(false); }
+    if (hasEvents) { 
+      setSelectedDate(date); 
+      setIsAddingEvent(false); 
+      setEditingEvent(null);
+    }
   };
   
   const renderTileContent = ({ date, view }: { date: Date, view: string }) => {
@@ -230,7 +330,34 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </CalendarContainer>
         
         <RightPanelContainer>
-          {isAddingEvent ? (
+          {editingEvent ? (
+            // --- 3. 수정 모드일 때 ---
+            <>
+              <DetailsHeader>일정 수정</DetailsHeader>
+              <Form onSubmit={handleUpdateEvent}>
+                <FormGroup><label htmlFor="title">제목</label><input type="text" name="title" id="title" value={editingEvent.title} onChange={handleEditEventChange} required /></FormGroup>
+                <FormGroup><FormRow><label>하루 종일</label><SwitchLabel><SwitchInput type="checkbox" name="isAllDay" checked={editingEvent.isAllDay} onChange={handleEditEventChange} /><SwitchSlider /></SwitchLabel></FormRow></FormGroup>
+                <FormGroup>
+                  <label htmlFor="startDate">시작</label>
+                  <input type={editingEvent.isAllDay ? 'date' : 'datetime-local'} name="startDate" id="startDate"
+                    value={editingEvent.isAllDay ? toDateInputString(editingEvent.startDate) : toDateTimeLocalString(editingEvent.startDate)}
+                    onChange={handleEditEventChange} />
+                </FormGroup>
+                <FormGroup>
+                  <label htmlFor="endDate">종료</label>
+                  <input type={editingEvent.isAllDay ? 'date' : 'datetime-local'} name="endDate" id="endDate"
+                    value={editingEvent.isAllDay ? toDateInputString(editingEvent.endDate) : toDateTimeLocalString(editingEvent.endDate)}
+                    onChange={handleEditEventChange} />
+                </FormGroup>
+                <FormGroup><label htmlFor="description">상세 설명</label><textarea name="description" id="description" rows={4} value={editingEvent.description} onChange={handleEditEventChange}></textarea></FormGroup>
+                <ButtonContainer>
+                  <ActionButton type="submit">저장</ActionButton>
+                  <CloseButton type="button" onClick={() => setEditingEvent(null)}>취소</CloseButton>
+                </ButtonContainer>
+              </Form>
+            </>
+          ) : isAddingEvent ? (
+            // --- 2. 추가 모드일 때 ---
             <>
               <DetailsHeader>새 일정 추가</DetailsHeader>
               <Form onSubmit={handleSaveEvent}>
@@ -238,15 +365,15 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <FormGroup><FormRow><label>하루 종일</label><SwitchLabel><SwitchInput type="checkbox" name="isAllDay" checked={newEvent.isAllDay} onChange={handleNewEventChange} /><SwitchSlider /></SwitchLabel></FormRow></FormGroup>
                 <FormGroup>
                   <label htmlFor="startDate">시작</label>
-                  <input type={newEvent.isAllDay ? 'date' : 'datetime-local'} name="startDate" id="startDate" 
-                         value={newEvent.isAllDay ? toDateInputString(newEvent.startDate) : toDateTimeLocalString(newEvent.startDate)} 
-                         onChange={handleNewEventChange} />
+                  <input type={newEvent.isAllDay ? 'date' : 'datetime-local'} name="startDate" id="startDate"
+                    value={newEvent.isAllDay ? toDateInputString(newEvent.startDate) : toDateTimeLocalString(newEvent.startDate)}
+                    onChange={handleNewEventChange} />
                 </FormGroup>
                 <FormGroup>
                   <label htmlFor="endDate">종료</label>
-                  <input type={newEvent.isAllDay ? 'date' : 'datetime-local'} name="endDate" id="endDate" 
-                         value={newEvent.isAllDay ? toDateInputString(newEvent.endDate) : toDateTimeLocalString(newEvent.endDate)} 
-                         onChange={handleNewEventChange} />
+                  <input type={newEvent.isAllDay ? 'date' : 'datetime-local'} name="endDate" id="endDate"
+                    value={newEvent.isAllDay ? toDateInputString(newEvent.endDate) : toDateTimeLocalString(newEvent.endDate)}
+                    onChange={handleNewEventChange} />
                 </FormGroup>
                 <FormGroup><label htmlFor="description">상세 설명</label><textarea name="description" id="description" rows={4} value={newEvent.description} onChange={handleNewEventChange}></textarea></FormGroup>
                 <ButtonContainer>
@@ -256,14 +383,20 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </Form>
             </>
           ) : selectedDate && (
+            // --- 1. 상세 보기 모드일 때 ---
             <>
               <DetailsHeader>{selectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</DetailsHeader>
               {selectedDayEvents.length > 0 ? (
                 selectedDayEvents.map(event => (
                   <EventDetailCard key={event.eventId}>
                     <h4>{event.title}</h4>
-                    <p><strong>시간:</strong> {event.isAllDay ? '하루종일' : `${event.startDate.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })} ~ ${event.endDate.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })}`}</p>
+                    <p><strong>시간:</strong> {event.isAllDay ? '하루종일' : `${event.startDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} ~ ${event.endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}</p>
                     <p><strong>상세:</strong><br />{event.description}</p>
+                    {/* --- ✨ 수정/삭제 버튼 추가 --- */}
+                    <DetailButtonContainer>
+                      <DetailButton onClick={() => setEditingEvent(event)}>일정 수정</DetailButton>
+                      <DetailButton onClick={() => handleDeleteEvent(event.eventId)}>일정 삭제</DetailButton>
+                    </DetailButtonContainer>
                   </EventDetailCard>
                 ))
               ) : <p>선택된 날짜에 일정이 없습니다.</p>}
