@@ -222,7 +222,7 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
     };
     
     try {
-        const response = await fetch(`${API_URL}/spring/calender/new`, {
+        const response = await fetch(`/spring/calender/new`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -259,7 +259,7 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
     };
 
     try {
-      const response = await fetch(`${API_URL}/spring/calender/update`, {
+      const response = await fetch(`/spring/calender/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -274,7 +274,7 @@ const CalendarModal: React.FC<Props> = ({ isOpen, onClose }) => {
     if (!window.confirm("정말로 이 일정을 삭제하시겠습니까?")) return;
 
     try {
-      const response = await fetch(`${API_URL}/spring/calender/delete?eventId=${eventId}`, {
+      const response = await fetch(`/spring/calender/delete?eventId=${eventId}`, {
         method: 'GET' // 명시적으로 GET으로 설정 (기본값이 GET이긴 함)
       });
       if (!response.ok) throw new Error("일정 삭제에 실패했습니다.");

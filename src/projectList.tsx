@@ -47,7 +47,7 @@ const ProjectList: React.FC = () => {
   const fetchTeams = useCallback(async () => {
     if (!userEmail) return; // userEmail이 없으면 실행하지 않음
     try {
-      const response = await fetch(`${API_URL}/spring/api/teams/list`, {
+      const response = await fetch(`/spring/api/teams/list`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: userEmail }),
@@ -92,7 +92,7 @@ const ProjectList: React.FC = () => {
   // 메시지 모달 열기
   const handleMailClick = async () => {
     try {
-      const response = await fetch(`${API_URL}/spring/api/users/message`, {
+      const response = await fetch(`/spring/api/users/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: userEmail }),
@@ -129,7 +129,7 @@ const ProjectList: React.FC = () => {
       return;
     }
     try {
-      const response = await fetch(`${API_URL}/spring/api/users/message/choice`, {
+      const response = await fetch(`/spring/api/users/message/choice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -165,7 +165,7 @@ const ProjectList: React.FC = () => {
 
     try {
       // API 서버에 메시지 삭제 요청
-      const response = await fetch(`${API_URL}/spring/api/users/message/delete`, {
+      const response = await fetch(`/spring/api/users/message/delete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -215,7 +215,7 @@ const ProjectList: React.FC = () => {
     if (window.confirm("정말로 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
       try {
         // --- 추가된 API 호출 로직 ---
-        const response = await fetch(`${API_URL}/spring/api/teams/delete`, {
+        const response = await fetch(`/spring/api/teams/delete`, {
           method: "POST", // 또는 서버에서 요구하는 HTTP 메소드 (예: DELETE)
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tid: tid }), // 팀 ID를 JSON으로 전송
@@ -246,7 +246,7 @@ const ProjectList: React.FC = () => {
     if (window.confirm("정말로 이 팀을 나가시겠습니까?")) {
       try {
         // 팀 나가기 API 호출
-        const response = await fetch(`${API_URL}/spring/api/teams/exit`, {
+        const response = await fetch(`/spring/api/teams/exit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tid: tid, uid: userEmail }),

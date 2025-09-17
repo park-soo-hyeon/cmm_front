@@ -255,7 +255,7 @@ const Leader: React.FC = () => {
         }
         setLoading(true); // 데이터 요청 시작 시 로딩 상태 활성화
         try {
-            const response = await fetch(`${API_URL}/spring/api/teams/page`, {
+            const response = await fetch(`/spring/api/teams/page`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ tid: teamId }),
@@ -285,7 +285,7 @@ const Leader: React.FC = () => {
   const handleDeleteMember = async (memberUid: string) => {
         if (window.confirm(`정말로 팀원 '${memberUid}'님을 삭제하시겠습니까?`)) {
         try {
-            const response = await fetch(`${API_URL}/spring/api/teams/mem/delete`, {
+            const response = await fetch(`/spring/api/teams/mem/delete`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -336,7 +336,7 @@ const Leader: React.FC = () => {
 
     setIsAddingMember(true);
     try {
-      const response = await fetch(`${API_URL}/spring/api/teams/message`, {
+      const response = await fetch(`/spring/api/teams/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -365,7 +365,7 @@ const Leader: React.FC = () => {
   const handleDeleteInvitation = async (emailToDelete: string) => {
     setIsAddingMember(true); // 버튼 비활성화를 위해 로딩 상태 사용
     try {
-      const response = await fetch(`${API_URL}/spring/api/teams/message/delete`, {
+      const response = await fetch(`/spring/api/teams/message/delete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -391,7 +391,7 @@ const Leader: React.FC = () => {
   const handleDeleteTeam = async () => {
     if (window.confirm(`정말로 '${teamName}' 팀을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
       try {
-        const response = await fetch(`${API_URL}/spring/api/teams/delete`, {
+        const response = await fetch(`/spring/api/teams/delete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tid: teamId }),
