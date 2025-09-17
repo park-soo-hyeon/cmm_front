@@ -337,6 +337,14 @@ const ProjectList: React.FC = () => {
                               ×
                             </DismissButton>
                           </>
+                        ) : message.content === 3 ? (
+                          // 팀 탈퇴 알림 (content: 3) - 새로 추가된 부분
+                          <>
+                            <b>{message.senduid}</b>님이 <b>{message.tname}</b>에서 나갔습니다.
+                            <DismissButton onClick={() => handleDismiss(message)}>
+                              ×
+                            </DismissButton>
+                          </>
                         ) : (
                           // 그 외 (팀원 거절 등)
                           <>
