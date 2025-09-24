@@ -4,6 +4,8 @@
   <img src="https://capsule-render.vercel.app/api?type=wave&color=EDE9F2&height=300&section=header&text=Blanck%20Sync&fontSize=60&fontColor=3B3740&animation=fadeIn" />
 </p>
 
+<br />
+
 ## 🙋‍♂️ Front-End Developer: 박수현
 본 프로젝트는 4인 팀으로 진행되었으며, 저는 팀장 역할과 프론트엔드 개발을 주도적으로 담당했습니다. 이 레포지토리는 제가 담당한 프론트엔드 파트의 소스 코드를 담고 있습니다.
 
@@ -14,17 +16,23 @@
 | **👥 팀원 / 백엔드** | **유현하** [@yoohyunha](https://github.com/yoohyunha) | 실시간 동기화 서버 개발 |
 | **👥 팀원 / 백엔드** | **임현** [@limhyun0319](https://github.com/limyun0319) | 회원 관리 및 인증, 실시간 동기화 서버 외의 백엔드 개발 |
 
+<br />
+
 ---
 
 ## 🛠️ 프로젝트 개요
 
   <img src="images/info.png" width="700" height="400">
 
+<br />
+
 ## 🎨 주요 화면 및 UI
 
 제가 구현한 주요 UI 화면입니다. Figma 디자인을 기반으로 모든 컴포넌트를 직접 구현했습니다.
 
   <img src="images/ui.png" width="700" height="400">
+
+<br />
 
 ---
 
@@ -38,6 +46,8 @@
 - **사용자 인증 흐름 구현**: 회원가입, 로그인, 소셜 로그인(네이버/카카오) 등 사용자 인증에 필요한 모든 프론트엔드 로직과 UI를 구현했습니다.
 - **반응형 웹 디자인**: 다양한 디바이스(모바일, 데스크톱)에서 최적화된 화면을 볼 수 있도록 반응형 레이아웃을 적용했습니다.
 
+<br />
+
 ### ⚙️ 기술 스택 (Tech Stack)
 <div style="display: flex; flex-direction: column; gap: 10px;">
   <div style="display: flex; align-items: center; gap: 8px; margin: 0;">
@@ -45,20 +55,17 @@
     <img src="https://img.shields.io/badge/React-61DAFB?style=flat&logo=React&logoColor=white" />
     <img src="https://img.shields.io/badge/Typescript-3178C6?style=flat&logo=Typescript&logoColor=white" />
   </div>
-  
   <div style="display: flex; align-items: center; gap: 8px; margin: 0;">
     <h4 style="margin: 0; min-width: 100px;">백엔드</h4>
     <img src="https://img.shields.io/badge/Node.js-339933?style=flat&logo=Node.js&logoColor=white" />
     <img src="https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=MySQL&logoColor=white" />
     <img src="https://img.shields.io/badge/AmazonAWS-232F3E?style=flat&logo=Amazon%20AWS&logoColor=white" />
   </div>
-  
   <div style="display: flex; align-items: center; gap: 8px; margin: 0;">
     <h4 style="margin: 0; min-width: 100px;">배포</h4>
     <img src="https://img.shields.io/badge/AWS-FF9900?style=flat&logo=Amazon%20AWS&logoColor=white" />
     <img src="https://img.shields.io/badge/Docker-2496ED?style=flat&logo=Docker&logoColor=white" />
   </div>
-  
   <div style="display: flex; align-items: center; gap: 8px; margin: 0;">
     <h4 style="margin: 0; min-width: 100px;">협업툴</h4>
     <img src="https://img.shields.io/badge/Notion-FFFFFF?style=flat&logo=Notion&logoColor=black" />
@@ -66,6 +73,10 @@
     <img src="https://img.shields.io/badge/Discord-5865F2?style=flat&logo=Discord&logoColor=white" />
   </div>
 </div>
+
+<br />
+
+---
 
 ## 📖 프로젝트 회고 (My Reflection)
 이번 졸업 작품 프로젝트에서 전반적인 진행과 UI 구성, 그리고 프론트엔드(React) 페이지 제작 및 API 연동 구현을 담당했습니다.
@@ -76,12 +87,16 @@
   ## ⚙️ 시스템 구성 및 백엔드 정보 (참고용)
   
   ### 시스템 구성도
-    <img src="images/arch.png" width="700" height="400">
+  <img src="images/arch.png" width="700" height="400">
   
   ### ERD
-    <img src="images/erd.png" width="700" height="400">
+  <img src="images/erd.png" width="700" height="400">
 
 </details>
+
+<br />
+
+---
 
 ## 🔗 관련 링크
 ### 🎬 시연 영상
