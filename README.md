@@ -1,4 +1,4 @@
-# CMM - 협업을 위한 실시간 동기화 프로젝트 툴
+# CMM - 실시간 원격 협업 플랫폼
 
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=wave&color=EDE9F2&height=300&section=header&text=Blanck%20Sync&fontSize=60&fontColor=3B3740&animation=fadeIn" />
@@ -6,11 +6,11 @@
 
 <br />
 
-## 🙋‍♂️ Front-End Developer: 박수현
+## 🙋‍♂️ 팀원소개
 본 프로젝트는 4인 팀으로 진행되었으며, 저는 팀장 역할과 프론트엔드 개발을 주도적으로 담당했습니다. 이 레포지토리는 제가 담당한 프론트엔드 파트의 소스 코드를 담고 있습니다.
 
 | 역할 | 개발자 | 주요 담당 업무 |
-|------|--------|-----------|
+|---------|-----------|----------------|
 | **👑 팀장 / 프론트엔드** | **박수현** [@park-soo-hyeon](https://github.com/park-soo-hyeon) | UI/UX 설계 및 전체 컴포넌트 구현, API 연동, 전역 상태 관리, 프로젝트 총괄 |
 | **👥 팀원 / 풀스택** | **김규한** [@gyuhan0114](https://github.com/gyuhan0114) | 프론트엔드 및 백엔드 개발 |
 | **👥 팀원 / 백엔드** | **유현하** [@yoohyunha](https://github.com/yoohyunha) | 실시간 동기화 서버 개발 |
@@ -21,7 +21,6 @@
 ---
 
 ## 🛠️ 프로젝트 개요
-
   <img src="images/info.png" width="700" height="400">
 
 <br />
@@ -29,7 +28,6 @@
 ## 🎨 주요 화면 및 UI
 
 제가 구현한 주요 UI 화면입니다. Figma 디자인을 기반으로 모든 컴포넌트를 직접 구현했습니다.
-
   <img src="images/ui.png" width="700" height="400">
 
 <br />
